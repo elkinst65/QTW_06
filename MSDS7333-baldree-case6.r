@@ -23,9 +23,10 @@ options(digits = 2)
 # include necessary functions
 if (!exists("processLine", mode="function")) source("MSDS7333-baldree-case6-fx.r")
 
-#######################################################################################
-# Part 1: Access point MAC address analysis of 00:0f:a3:39:e1:c0 and 00:0f:a3:39:dd:cd
-#######################################################################################
+#### Part 1: Access point MAC address analysis of 00:0f:a3:39:e1:c0 and 00:0f:a3:39:dd:cd ####
 
 # read offline data
 offline = readData()
+
+# signal strength analysis of two mac addresses
+

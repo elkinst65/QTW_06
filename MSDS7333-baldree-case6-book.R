@@ -6,9 +6,7 @@
 #
 # Code from Data Science in R, Case Study 1
 
-#################################################
-# 1.2 Raw Data
-#################################################
+#### 1.2 Raw Data ####
 options(digits = 2)
 # readlines for examination
 txt = readLines("offline.final.trace.txt")
@@ -70,9 +68,7 @@ tmp = lapply(lines, processLine)
 offline = as.data.frame(do.call("rbind", tmp), stringsAsFactors = FALSE)
 dim(offline)
 
-#################################################
-# 1.3 Cleaning the Data and Building a Representation for Analysis
-#################################################
+#### 1.3 Cleaning the Data and Building a Representation for Analysis ####
 
 # variable names
 names(offline) = c("time", "scanMac", "posX", "posY", "posZ", "orientation", "mac",
@@ -104,8 +100,7 @@ summary(sapply(offline[, c("mac", "channel", "scanMac")],
 # discard scanMac and posZ
 offline = offline[ , !(names(offline) %in% c("scanMac", "posZ"))]
 
-###############################################
-# 1.3.1 Exploring Orientation
+#### 1.3.1 Exploring Orientation ####
 
 # check number of orientations
 length(unique(offline$orientation))
@@ -141,8 +136,7 @@ offline$angle = roundOrientation(offline$orientation)
 # check rounded values to ensure they are correct
 with(offline, boxplot(orientation ~ angle, xlab = "nearest 45 degree angle", ylab = "orientation"))
 
-###############################################
-# 1.3.2 Exploring MAC Addresses
+#### 1.3.2 Exploring MAC Addresses ####
 
 # how many unique addresses and channels?
 c(length(unique(offline$mac)), length(unique(offline$channel)))
@@ -162,8 +156,7 @@ apply(macChannel, 1, function(x) sum(x > 0))
 # eliminate channel variable
 offline = offline[ , "channel" != names(offline)]
 
-###############################################
-# 1.3.3 Exploring the Position of the Hand-Held Device
+#### 1.3.3 Exploring the Position of the Hand-Held Device ####
 
 # how many different locations do we have data?
 locDF = with(offline,
@@ -203,8 +196,7 @@ text(locCounts, labels = locCounts[,3], cex = .8, srt = 45)
 par(oldPar)
 dev.off()
 
-###############################################
-# 1.3.4 Creating a Function to Prepare the Data
+#### 1.3.4 Creating a Function to Prepare the Data ####
 
 # function to process data based on previous work
 readData = function(filename = 'offline.final.trace.txt',
@@ -258,9 +250,7 @@ identical(offline, offlineRedo)
 library(codetools)
 findGlobals(readData, merge=FALSE)$variables
 
-#################################################
-# 1.4 Signal Strength Analysis
-#################################################
+#### 1.4 Signal Strength Analysis ####
 
 # we have visualized and looked at stat summaries to clean and format data
 # now, investigate response variable and signal strength
@@ -335,8 +325,7 @@ lines(x = 70:120, y = lo.obj.pr, col = "#4daf4a", lwd = 2)
 par(oldPar)
 dev.off()
 
-###############################################
-# 1.4.2 The Relationship between Signal and Distance
+#### 1.4.2 The Relationship between Signal and Distance ####
 
 # one way to examine the relationship between distance and signal strength is to smooth
 # the signal strength over the region where it is measured and create a contour plot.
@@ -402,9 +391,7 @@ xyplot(signal ~ dist | factor(mac) + factor(angle), data = offlineSummary, pch =
 par(oldPar)
 dev.off()
 
-#################################################
-# 1.5 Nearest Neighbor Methods to Predict Location
-#################################################
+#### 1.5 Nearest Neighbor Methods to Predict Location ####
 
 macs = unique(offlineSummary$mac)
 online = readData("online.final.trace.txt", subMacs = macs)
@@ -434,8 +421,7 @@ onlineSummary = do.call("rbind", byLoc)
 dim(onlineSummary)
 names(onlineSummary)
 
-###############################################
-# 1.5.2 Choice of Orientation
+#### 1.5.2 Choice of Orientation ####
 
 # in kNN, we want to find records that have similar orientations to our new observation because orientation
 # impacts strength of signal.
@@ -521,8 +507,7 @@ head(train130)
 # instead return a set of mx166 signals for each access point?
 length(train130[[1]])
 
-###############################################
-# 1.5.3 Finding the Nearest Neighbors
+#### 1.5.3 Finding the Nearest Neighbors ####
 
 # want to look the distance in terms of signal strengths from these training data to the new
 # data point. we need to calculate teh distrance from the new point to all observations in the
@@ -605,8 +590,7 @@ actualXY = onlineSummary[ , c("posX", "posY")]
 # errors: k=1 is 659 and k=3 is 307
 sapply(list(estXYk1, estXYk3), calcError, actualXY)
 
-###############################################
-# 1.5.4 Cross-Validation and Choice of k
+#### 1.5.4 Cross-Validation and Choice of k ####
 
 # selecting the correct number of k is a model selection problem.
 # need to ensure we don't overfit the model.
