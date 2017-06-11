@@ -20,13 +20,50 @@
 
 # two digit precision for printing and formatting
 options(digits = 2)
+options(error = recover, warn = 2)
 # include necessary functions
-if (!exists("processLine", mode="function")) source("MSDS7333-baldree-case6-fx.r")
+#if (!exists("processLine", mode="function")) source("MSDS7333-baldree-case6-fx.r")
+source("MSDS7333-baldree-case6-fx.r")
 
 #### Part 1: Access point MAC address analysis of 00:0f:a3:39:e1:c0 and 00:0f:a3:39:dd:cd ####
 
 # read offline data
 offline = readData()
 
-# signal strength analysis of two mac addresses
+# addresses in question
+chosenMac = "00:0f:a3:39:e1:c0"
+rejectedMac = "00:0f:a3:39:dd:cd"
+
+# signal map of both mac addresses
+# result: map looks equivalent
+plotSignalMap(offline[offline$mac %in% c(chosenMac), ])
+plotSignalMap(offline[offline$mac %in% c(rejectedMac), ])
+
+# box plot of two mac addresses
+# result: shows a tighter spread with better mean signal for chosenMac but a number of outliers
+boxplotSS(offline[offline$mac %in% c(chosenMac, rejectedMac), ])
+
+### SANDBOX ####
+# our mac addresses have the most entries
+subMacs = names(sort(table(offline$mac), decreasing = TRUE))[1:7]
+identical(subMacs[1:2], c(chosenMac, rejectedMac))
+
+# show heatmap for both mac addresses
+
+# box plot two macs similar to 1.4.1
+
+# plot signal distribution
+
+# SD of signal strength by mean
+
+### SANDBOX ^^^^^^
+
+
+
+
+# relationship between signal strength and distance
+
+# floor error map
+
+# training with each mac address
 

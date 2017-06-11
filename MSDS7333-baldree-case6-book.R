@@ -565,7 +565,7 @@ floorErrorMap = function(estXY, actualXY, trainPoints = NULL, AP = NULL){
     # redline from actual to predicted
     segments(x0 = estXY[, 1], y0 = estXY[, 2], x1 = actualXY[, 1], y1 = actualXY[ , 2], lwd = 2, col = "red")
 }
-# training points of average signal strengths from each of teh 166 offline locations to the six access points
+# training points of average signal strengths from each of the 166 offline locations to the six access points
 trainPoints = offlineSummary[ offlineSummary$angle == 0 & offlineSummary$mac == "00:0f:a3:39:e1:c0",
                               c("posX", "posY")]
 

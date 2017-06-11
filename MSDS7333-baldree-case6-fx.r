@@ -86,3 +86,41 @@ readData = function(filename = 'offline.final.trace.txt',
 
   return(df)
 }
+
+boxplotSS = function(df) {
+  # Box plot signal strength
+  #
+  # Args:
+  #   df: data frame
+  #
+  library (lattic)
+  oldPar = par(mar = c(3.1, 3.1, 1, 1))
+  with(df, boxplot(signal ~ mac))
+  par(oldPar)
+}
+
+plotSignalMap = function(df) {
+  # Plot the number of signals per XY location at XY location.
+  #
+  # Args:
+  #   df: data frame
+  #
+  # location of datapoints filtered
+  locDF = with(df, by(df, list(posX, posY), function(x) x))
+  # drop locations that were not observed, null
+  locDF = locDF[!sapply(locDF, is.null)]
+
+  # determine the number of observations recorded at each location
+  locCounts = sapply(locDF, nrow)
+
+  # keep position information with location
+  locCounts = sapply(locDF, function(df) c(df[1, c("posX", "posY")], count = nrow(df)))
+
+  # plot total signals recorded at access point
+  oldPar = par(mar = c(3.1, 3.1, 1, 1))
+  # transpose matrix
+  locCounts = t(locCounts)
+  plot(locCounts, type = "n", xlab = "", ylab = "")
+  text(locCounts, labels = locCounts[, 3], cex = .8, srt = 45)
+  par(oldPar)
+}
