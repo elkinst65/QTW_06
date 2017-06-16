@@ -87,40 +87,67 @@ readData = function(filename = 'offline.final.trace.txt',
   return(df)
 }
 
-boxplotSS = function(df) {
+plotBoxplotSignalStrength = function(df) {
   # Box plot signal strength
   #
   # Args:
-  #   df: data frame
+  #   df: data frame of data to analyze
   #
-  library (lattic)
-  oldPar = par(mar = c(3.1, 3.1, 1, 1))
-  with(df, boxplot(signal ~ mac))
+  oldPar = par(mar = c(3.1, 3.1, 1, 1), mfrow = c(1,1))
+  par(mfrow = c(2, 1), mai=c(.8, .8, .5, .25))
+  library (lattice)
+
+  print(bwplot(signal ~ factor(angle) | mac, data = df, layout = c(2,1),
+               main="Signal Strength Distribution for Access Points",
+               xlab="Angle Measured (deg)", ylab="Signal Strengh (dBM)"))
   par(oldPar)
 }
 
-plotSignalMap = function(df) {
+plotDensitySignalStrength = function(df) {
+  # Density plot signal strength
+  #
+  # Args:
+  #   df: data frame of data to analyze
+  #
+  oldPar = par(mar = c(3.1, 3.1, 1, 1), mfrow = c(1,1))
+  par(mfrow = c(2, 1), mai=c(.8, .8, .5, .25))
+  library (lattice)
+
+  print(densityplot( ~ signal | mac + factor(angle), data = df, bw = 0.5, plot.points = FALSE,
+        main="Signal Strength Distribution for Access Points",
+        xlab="Angle Measured (deg)", ylab="Signal Strengh (dBM)"))
+  par(oldPar)
+}
+
+plotSignalMaps = function(macAddresses) {
   # Plot the number of signals per XY location at XY location.
   #
   # Args:
-  #   df: data frame
+  #   macAddresses: a list of macs to plot signals
   #
-  # location of datapoints filtered
-  locDF = with(df, by(df, list(posX, posY), function(x) x))
-  # drop locations that were not observed, null
-  locDF = locDF[!sapply(locDF, is.null)]
+  oldPar = par(mar = c(3.1, 3.1, 1, 1), mfrow = c(1,1))
+  par(mfrow = c(2, 1), mai=c(.8, .8, .4, .25))
 
-  # determine the number of observations recorded at each location
-  locCounts = sapply(locDF, nrow)
+  for (i in macAddresses) {
+    # filter data set
+    df = offline[offline$mac %in% i, ]
+    # location of datapoints filtered
+    locDF = with(df, by(df, list(posX, posY), function(x) x))
+    # drop locations that were not observed, null
+    locDF = locDF[!sapply(locDF, is.null)]
 
-  # keep position information with location
-  locCounts = sapply(locDF, function(df) c(df[1, c("posX", "posY")], count = nrow(df)))
+    # determine the number of observations recorded at each location
+    locCounts = sapply(locDF, nrow)
 
-  # plot total signals recorded at access point
-  oldPar = par(mar = c(3.1, 3.1, 1, 1))
-  # transpose matrix
-  locCounts = t(locCounts)
-  plot(locCounts, type = "n", xlab = "", ylab = "")
-  text(locCounts, labels = locCounts[, 3], cex = .8, srt = 45)
+    # keep position information with location
+    locCounts = sapply(locDF, function(df) c(df[1, c("posX", "posY")], count = nrow(df)))
+
+    # transpose matrix
+    locCounts = t(locCounts)
+    plot(locCounts, type = "n", xlab = "Position X", ylab = "Position Y",
+         main = paste("Total Signals from Detector to Access Point: ", i),
+         cex.main=.8, cex.axis=.8, cex.lab=.8)
+    text(locCounts, labels = locCounts[, 3], cex = .6, srt = 45)
+  }
   par(oldPar)
 }

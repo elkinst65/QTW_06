@@ -23,41 +23,60 @@ options(digits = 2)
 options(error = recover, warn = 2)
 # include necessary functions
 #if (!exists("processLine", mode="function")) source("MSDS7333-baldree-case6-fx.r")
-source("MSDS7333-baldree-case6-fx.r")
+source("MSDS7333-baldree-case6-fx.r", print.eval=TRUE)
 
 #### Part 1: Access point MAC address analysis of 00:0f:a3:39:e1:c0 and 00:0f:a3:39:dd:cd ####
 
 # read offline data
 offline = readData()
 
-# addresses in question
-chosenMac = "00:0f:a3:39:e1:c0"
-rejectedMac = "00:0f:a3:39:dd:cd"
+# access points (AP) addresses in question
+# note that both devices are Alpha Networks devices because they begin with '00:0f'
+chosenAP = "00:0f:a3:39:e1:c0"
+rejectedAP = "00:0f:a3:39:dd:cd"
+remainingAP = unique(offline[!offline$mac %in% c(chosenAP, rejectedAP),]$mac)
 
-# signal map of both mac addresses
+#### Signal Collection Map ####
+
+# plot the locations and count of signals recorded for both access points
+# we would plot the APs on the map but we do not know their X,Y locations
 # result: map looks equivalent
-plotSignalMap(offline[offline$mac %in% c(chosenMac), ])
-plotSignalMap(offline[offline$mac %in% c(rejectedMac), ])
+plotSignalMaps(c(chosenAP, rejectedAP))
 
-# box plot of two mac addresses
-# result: shows a tighter spread with better mean signal for chosenMac but a number of outliers
-boxplotSS(offline[offline$mac %in% c(chosenMac, rejectedMac), ])
+#### Signal Strength Distribution ####
 
-### SANDBOX ####
-# our mac addresses have the most entries
-subMacs = names(sort(table(offline$mac), decreasing = TRUE))[1:7]
-identical(subMacs[1:2], c(chosenMac, rejectedMac))
+# plot signal strength distribution for each angle per AP
+# we are using the same stationary point of 2, 12 as the book
+# result: rejected AP has a lower signal strength for the X,Y than chosen AP.
+df = subset(offline, posX == 2 & posY == 12 & !(mac %in% remainingAP), c(signal, angle, mac))
+plotBoxplotSignalStrength(df)
+
+# examine AP strength from a fixed location at opposite end of building say 33, 3
+# result: rejected AP has a lower signal strength for X,Y than chosen AP.
+df = subset(offline, posX == 33 & posY == 3 & !(mac %in% remainingAP), c(signal, angle, mac))
+plotBoxplotSignalStrength(df)
+
+#### Signal Density ####
+
+# plot signal strength density for each angle per AP
+# we are using the same stationary point of 24, 4 as the book
+# i'm not sure why they are using this point.
+# result: rejected AP has more density at lower strength.
+#         chosen AP has more density coverage at higher strength.
+#         it may be best to keep use both points to have coverage for all range of strengths.
+df = subset(offline, posX == 24 & posY == 4 & !(mac %in% remainingAP), c(signal, angle, mac))
+plotDensitySignalStrength(df)
+
+
+#### Average Signal Strength Distribution ####
+
+
+### TODO ####
 
 # show heatmap for both mac addresses
 
-# box plot two macs similar to 1.4.1
-
-# plot signal distribution
 
 # SD of signal strength by mean
-
-### SANDBOX ^^^^^^
-
 
 
 
