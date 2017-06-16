@@ -94,7 +94,7 @@ plotBoxplotSignalStrength = function(df) {
   #   df: data frame of data to analyze
   #
   oldPar = par(mar = c(3.1, 3.1, 1, 1), mfrow = c(1,1))
-  par(mfrow = c(2, 1), mai=c(.8, .8, .5, .25))
+  par(mai=c(.8, .8, .5, .25))
   library (lattice)
 
   print(bwplot(signal ~ factor(angle) | mac, data = df, layout = c(2,1),
@@ -110,7 +110,7 @@ plotDensitySignalStrength = function(df) {
   #   df: data frame of data to analyze
   #
   oldPar = par(mar = c(3.1, 3.1, 1, 1), mfrow = c(1,1))
-  par(mfrow = c(2, 1), mai=c(.8, .8, .5, .25))
+  par(mai=c(.8, .8, .5, .25))
   library (lattice)
 
   print(densityplot( ~ signal | mac + factor(angle), data = df, bw = 0.5, plot.points = FALSE,
@@ -118,6 +118,25 @@ plotDensitySignalStrength = function(df) {
         xlab="Angle Measured (deg)", ylab="Signal Strengh (dBM)"))
   par(oldPar)
 }
+
+plotStdDevSignalStrength = function(df) {
+  # Standard Deviation of signal strength average
+  #
+  # Args:
+  #   df: data frame of data to analyze
+  #
+  oldPar = par(mar = c(3.1, 3.1, 1, 1), mfrow = c(1,1))
+  par(mai=c(.8, .8, .5, .25))
+  library (lattice)
+  breaks = seq(-90, -30, by=5)
+
+  print(bwplot(sdSignal ~ cut(avgSignal, breaks=breaks) | mac, data=df,
+               xlab = "Mean Signal (dBM)", ylab = "Signal Standard Deviation (dBM)",
+               main = "Standard Deviation of Average Signal Strength from Detector to Access Point",
+               cex.main=.8, cex.axis=.8, cex.lab=.8, layout = c(1, 2)))
+  par(oldPar)
+}
+
 
 plotSignalMaps = function(macAddresses) {
   # Plot the number of signals per XY location at XY location.

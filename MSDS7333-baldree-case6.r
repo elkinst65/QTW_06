@@ -63,6 +63,8 @@ plotBoxplotSignalStrength(df)
 # i'm not sure why they are using this point.
 # result: rejected AP has more density at lower strength.
 #         chosen AP has more density coverage at higher strength.
+#         many distributions look normal. several are skewed, secondary modes, and departure from norm.
+#         median of distribution vary by angle. angle makes a difference in strength.
 #         it may be best to keep use both points to have coverage for all range of strengths.
 df = subset(offline, posX == 24 & posY == 4 & !(mac %in% remainingAP), c(signal, angle, mac))
 plotDensitySignalStrength(df)
@@ -70,19 +72,31 @@ plotDensitySignalStrength(df)
 
 #### Average Signal Strength Distribution ####
 
+# In order to examine distribution for all locations, angles, and are two interested APs, we
+# will create a summary statistics for all location-orientation-AP combinations with a new factor.
+# For each combination there are around 100 observations.
+offline$posXY = paste(offline$posX, offline$posY, sep="-")
 
-### TODO ####
+# create data frames for each combination
+byLocAngleAP = with(offline, by(offline, list(posXY, angle, mac), function (x) x))
 
-# show heatmap for both mac addresses
+# summary statistic
+signalSummary = lapply(byLocAngleAP, function(oneLoc) {
+  ans = oneLoc[1, ]
+  ans$medSignal = median(oneLoc$signal)
+  ans$avgSignal = mean(oneLoc$signal)
+  ans$num = length(oneLoc$signal)
+  ans$sdSignal = sd(oneLoc$signal)
+  ans$iqrSignal = IQR(oneLoc$signal)
+  ans
+})
+offlineSummary = do.call("rbind", signalSummary)
 
+# plot stddev of average signal strength per targeted APs
+# result: reinforces that both addresses are important for full range coverage
+df = subset(offlineSummary, mac %in% c(chosenAP, rejectedAP), c(sdSignal, avgSignal, mac))
+plotStdDevSignalStrength(df)
 
-# SD of signal strength by mean
+#### k-NN ####
 
-
-
-# relationship between signal strength and distance
-
-# floor error map
-
-# training with each mac address
 
