@@ -170,3 +170,23 @@ plotSignalMaps = function(macAddresses) {
   }
   par(oldPar)
 }
+
+castOnline = function(df) {
+  # Cast dataframe of online data so each access point (AP) is in its own column.
+  # Matrix is now a 1x7 since we are including rejected AP.
+  #
+  # Args:
+  #   df: online data frame
+  #
+  keepVars = c("posXY", "posX","posY", "orientation", "angle")
+  byLoc = with(df,
+               by(df, list(posXY),
+                  function(x) {
+                    ans = x[1, keepVars]
+                    avgSS = tapply(x$signal, x$mac, mean)
+                    y = matrix(avgSS, nrow = 1, ncol = 7,
+                               dimnames = list(ans$posXY, names(avgSS)))
+                    cbind(ans, y)
+                  }))
+  return(do.call("rbind", byLoc))
+}

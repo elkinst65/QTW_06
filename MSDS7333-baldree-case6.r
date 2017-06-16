@@ -99,4 +99,24 @@ plotStdDevSignalStrength(df)
 
 #### k-NN ####
 
+# The statistical technique used to determine signal detection location is the k-nearest neighbors
+# or k-nn. The model will be trained with existing signal plus angle to coordinate position and used to predict
+# a new coordinate given a signal strength and angle.
+#
+# For part 1, we will train the model for the chosen, rejected, and combined APs. The online data
+# points will be used to predict their coorindations and the error prediction will be determined
+# for each model.
 
+macs = unique(offlineSummary$mac)
+online = readData("online.final.trace.txt", subMacs = macs)
+online$posXY = paste(online$posX, online$posY, sep="-")
+length(unique(online$posXY))
+tabonlineXYA = table(online$posXY, online$angle)
+# output shows that measurements were taken at all angles throughout the floor
+tabonlineXYA
+
+# organize the data where each AP is in a column
+onlineSummary = castOnline(online)
+# confirm rejected AP is now included
+dim(onlineSummary)
+names(onlineSummary)
