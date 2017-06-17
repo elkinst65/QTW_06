@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 1. Conduct a more thorough data analysis into these two MAC addresses, including determining locations by using data corresponding to both: 
     + chosenAP = "00:0f:a3:39:e1:c0"
     + rejectedAP = "00:0f:a3:39:dd:cd"
-* *Which of these two MAC addresses should be used and which should not be used for Real Time Location Services (RTLS)?*
+* *Which of these two MAC addresses should be used and which should not be used for Real Time Location System (RTLS)?*
 * *Which MAC address yields the best prediction of location?including determining locations by using data corresponding to both MAC addresses*
 * *Does using data for both MAC addresses simultaneously yield more, or less accurate prediction of location?*
 
@@ -23,20 +23,16 @@ knitr::opts_chunk$set(echo = TRUE)
 * *For what range of values of weights are you able to obtain better prediction values than for the unweighted approach?*
 * *Use calcError() to compare approaches*
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+## Introduction
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+***
 
-```{r cars}
-summary(cars)
-```
+## The Approach (Explained)
 
-## Including Plots
+***
 
-You can also embed plots, for example:
+### Preliminary Functions to be used: 
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
+## The Output Achieved (this should be included as close as possible to the output or figures as possible)
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
