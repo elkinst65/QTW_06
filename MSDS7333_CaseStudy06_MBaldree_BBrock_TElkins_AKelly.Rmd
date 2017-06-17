@@ -1,0 +1,42 @@
+---
+title: "MSDS 7333 Case Study 06"
+author: "Matthew Baldree, Ben Brock, Tom Elkins, Austin Kelly"
+date: "June 17, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Assignment: 
+1. Conduct a more thorough data analysis into these two MAC addresses, including determining locations by using data corresponding to both: 
+    + chosenAP = "00:0f:a3:39:e1:c0"
+    + rejectedAP = "00:0f:a3:39:dd:cd"
+* *Which of these two MAC addresses should be used and which should not be used for Real Time Location Services (RTLS)?*
+* *Which MAC address yields the best prediction of location?including determining locations by using data corresponding to both MAC addresses*
+* *Does using data for both MAC addresses simultaneously yield more, or less accurate prediction of location?*
+
+***
+
+2. Implement alternative k-nearest precition method using weights on received signal strength.
+* *For what range of values of weights are you able to obtain better prediction values than for the unweighted approach?*
+* *Use calcError() to compare approaches*
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
