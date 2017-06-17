@@ -2,7 +2,7 @@
 title: "MSDS 7333 Case Study 06"
 author: "Matthew Baldree, Ben Brock, Tom Elkins, Austin Kelly"
 date: "June 17, 2017"
-output: html_document
+output: html_notebook
 ---
 
 ```{r setup, include=FALSE}
@@ -29,9 +29,89 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## The Approach (Explained)
 
+### Part 1
+
+Before we begin, we will need to set the parameters for printing and formatting
+```{r}
+options(digits = 2)
+options(error = recover, warn = 2)
+```
+Before continuing, we will need to address another file which houses the predefined functions. This helps to save notebook real estate and prevents confusion:
+```{r}
+source("MSDS7333-baldree-case6-fx.r", print.eval = TRUE)
+```
+
+Read offline data
+```{r}
+offline = readData()
+```
+
+Conduct a more thorough data analysis into these two MAC addresses, including determining locations by using data corresponding to both:
+    
+    * chosenAP = "00:0f:a3:39:e1:c0"
+    * rejectedAP = "00:0f:a3:39:dd:cd"
+    
+Since we have the two MAC addresses in question, we will declare these addresses as variables to simplify later code. 
+
+```{r}
+chosenAP = "00:0f:a3:39:e1:c0"
+rejectedAP = "00:0f:a3:39:dd:cd"
+remainingAP = unique(offline[!offline$mac %in% c(chosenAP, rejectedAP),]$mac)
+```
+
+* *Which of these two MAC addresses should be used and which should not be used for Real Time Location System (RTLS)?*
+
+#### Here we will create a Signal Collection Map
+For this exercise, we will plot both the count and locations of the signals recorded for the access points. Even though it would be ideal to plot the access points(APs) directly on the map, we do not know their X and Y coordinates. 
+
+```{r}
+plotSignalMaps(c(chosenAP, rejectedAP))
+```
+
+At first glance, we can see that the maps are quite similar. Unfortunately, the information gained from a visual comparison of these two diagrams does not give us a significant insight into which MAC address should be kept and which should be rejected. The next step to reach our goal will be to look at the individual Signal Strength Distributions
+
+***
+
+#### Signal Strength Distributions
+Plotting the individual signal strength distributions for each AP angle will help add perspective to the information we are working with. For the sake of consistency, we will use the same stationary coordinates listen in the course book (2, 12) (Add reference here.)
+
+```{r}
+df = subset(offline, posX ==2 & posY == 12 & !(mac %in% remainingAP), c(signal, angle, mac))
+plotBoxplotSignalStrength(df)
+```
+
+From the literature, we know the higher the decibel-milliwatts means a stronger signal strength.
+<font color="red">**(consider revising this sentence. Seems incomplete.)**</font> A stronger signal strength indicates a closer position to the AP since signal strengths decrease exponentially with distance. Comparing the signal strength distributions in this chart, we see "e1:c0" has a stronger signal strength at this location than "dd:cd."
+
+What if we compared the two addresses from the opposite end of the building? 
+```{r}
+# Let's focus on the fixed point (33,3)
+df = subset(offline, posX == 33 & posY == 3 & !(mac %in% remainingAP), c(signal, angle, mac))
+plotBoxplotSignalStrength(df)
+```
+Through the use of another perspective, the MAC address with the weaker signal at (2,12) still has a relatively weak signal when viewed from an AP at the other side of the building. The evidence against the address with the lower signal strength is mounting.
+
+***
+
+#### Time to investigate Signal Density
+To properly investigate the difference between these two addresses, the signal strength densities for each address should be plotted for each angle. This will help display the defining characteristics for each address. 
+
+```{r}
+df = subset(offline, posX == 24 & posY == 4 & !(mac %in% remainingAP), c(signal, angle, mac))
+plotDensitySignalStrength(df)
+```
+<font color = "red"> &uarr; Having some trouble displaying the individual graphs here. &uarr; </font>
+
+* *Which MAC address yields the best prediction of location?including determining locations by using data corresponding to both MAC addresses*
+* *Does using data for both MAC addresses simultaneously yield more, or less accurate prediction of location?*
+
+
+### Part 2
+
 ***
 
 ### Preliminary Functions to be used: 
+## Let's break this section up and explain each function individually
 
 
 ## The Output Achieved (this should be included as close as possible to the output or figures as possible)
