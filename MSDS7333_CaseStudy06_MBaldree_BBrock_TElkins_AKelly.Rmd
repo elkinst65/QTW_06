@@ -30,11 +30,11 @@ knitr::opts_chunk$set(echo = TRUE)
 #### *Explain the case study*
 - Discuss the goal of the case study
 
-For this case study, the overall goal is to use K-Nearest Neighbors (kNN) and an alternative weighted method to be able to determine how different handheld devices moved through a building <font color = "red">(at Dartmouth. Let's confirm this and add some more detail)</font>. This can be achieved with an analysis of how the different Media Access Control (MAC) addresses for each of the devices interacted with the Access Points (APs) of the building. In this case, the APs are routers with known locations throughout the building. 
+For this case study, the overall goal is to use K-Nearest Neighbors (kNN) and an alternative weighted method to be able to determine how different handheld devices moved through a building <font color = "red">(at Dartmouth. Let's confirm this and add some more detail)</font>. This can be achieved with an analysis of how the different Media Access Control (MAC) addresses for each of the devices interacted with the Access Points (APs) of the building. In this case, the APs are routers with static locations throughout the building. 
 
 - Discuss the different Access points and MAC Addresses
 
-The access points as stated above allow for the tracking of the devices, thanks to the history of times, signal strengths and angles recorded for each MAC address with respect to each access point.<font color = "red">&larr;(consider fragmenting this sentence)</font> From the information that has been given, there are known to be six APs on the building floor in question. However, this is a problem since there are seven APs recorded. To determine which AP to exclude from the analysis, we will need to compare these two addresses:
+The access points as stated above allow for the tracking of the devices thanks to the logged history of times, signal strengths and angles for each MAC address with respect to each access point.<font color = "red">&larr;(consider fragmenting this sentence)</font> From the information that has been given, there are known to be six APs on the building floor in question. However, this is a problem since there are seven APs recorded. To determine which AP to exclude from the analysis, we will need to compare these two addresses:
 
     chosenAP   = "00:0f:a3:39:e1:c0"
     rejectedAP = "00:0f:a3:39:dd:cd"
@@ -97,8 +97,10 @@ remainingAP = unique(offline[!offline$mac %in% c(chosenAP, rejectedAP),]$mac)
 
 * *Which of these two MAC addresses should be used and which should not be used for Real Time Location System (RTLS)?*
 
+To fully answer this question, we will need to explore exactly what is happening with each MAC address. The results of this exploration will define the parameters needed for such a decision.
+
 #### Here we will create a Signal Collection Map
-For this exercise, we will plot both the count and locations of the signals recorded for the access points. Even though it would be ideal to plot the access points(APs) directly on the map, we do not know their X and Y coordinates. 
+For this exercise, we will plot both the count and locations of the signals recorded for the access points. Even though it would be ideal to plot the access points(APs) directly on the map, we do not know their X and Y coordinates.
 
 ```{r}
 plotSignalMaps(c(chosenAP, rejectedAP))
@@ -109,17 +111,16 @@ At first glance, we can see that the maps are quite similar. Unfortunately, the 
 ***
 
 #### Signal Strength Distributions
-Plotting the individual signal strength distributions for each AP angle will help add perspective to the information we are working with. For the sake of consistency, we will use the same stationary coordinates listen in the course book (2, 12) (Add reference here.)
+Plotting the individual signal strength distributions for each AP angle will help add perspective to the information we are working with. For the sake of consistency, we will use the same stationary coordinates listed in the course book (coord : (2, 12)) <font color = "red">(Add reference here.)</font>
 
 ```{r}
 df = subset(offline, posX ==2 & posY == 12 & !(mac %in% remainingAP), c(signal, angle, mac))
 plotBoxplotSignalStrength(df)
 ```
 
-From the literature, we know the higher the decibel-milliwatts means a stronger signal strength.
-<font color="red">**(consider revising this sentence. Seems incomplete.)**</font> A stronger signal strength indicates a closer position to the AP since signal strengths decrease exponentially with distance. Comparing the signal strength distributions in this chart, we see "e1:c0" has a stronger signal strength at this location than "dd:cd."
+From the literature, we know the higher the decibel-milliwatts means a stronger signal strength. A stronger signal strength indicates a closer physical position to the AP since signal strengths decrease exponentially with distance.<font color="red">Find this in the book and cite it.</font> Comparing the signal strength distributions in this chart, we see "e1:c0" has a stronger signal strength at this location than "dd:cd."
 
-What if we compared the two addresses from the opposite end of the building? 
+What if we compared the two addresses from the opposite side of the building? 
 ```{r}
 # Let's focus on the fixed point (33,3)
 df = subset(offline, posX == 33 & posY == 3 & !(mac %in% remainingAP), c(signal, angle, mac))
@@ -130,12 +131,7 @@ Through the use of another perspective, the MAC address with the weaker signal a
 ***
 
 #### Time to investigate Signal Density
-To properly investigate the difference between these two addresses, the signal strength densities for each address should be plotted for each angle. This will help display the defining characteristics for each address. 
-
-```{r}
-
-```
-
+To properly investigate the difference between these two addresses, the signal strength densities for each address should be plotted for each 45 degree angle. This will help display the defining characteristics for each address. The location used for this analysis is the (24,4) from the book. 
 
 
 ```{r}
@@ -143,6 +139,10 @@ df = subset(offline, posX == 24 & posY == 4 & !(mac %in% remainingAP), c(signal,
 plotDensitySignalStrength(df)
 ```
 <font color = "red"> <b> &uarr; having issues with this diplaying properly... &uarr;</b> </font>
+
+From this plot, it can be seen that the rejectedAP has a higher signal density at lower strength while the acceptedAP has a higher density coverage at a higher strength. Judging by the distributions themselves, it seems as if many of the plots are normally distributed while some of the other plots (i.e. "dd:cd" at 180 and "e1:c0" at 315) are heavily skewed or even bimodal. Looking at each AP from top to bottom, there seems to exist an obvious pattern with respect to angle. This would suggest the median of each distribution varies by angle and attributes to a difference in perceived strength. 
+
+This evidence would suggest both addresses are kept within the analysis to increase the coverage for the entire spectrum of strengths.
 
 #### Average Signal Strength Distributions
 To examine the distribution for all locations and angles of the two APs in question, we will generate the summary statistics. The summary statistics for all possible combinations of locations and orientations for each AP through the use of a new factor. 
