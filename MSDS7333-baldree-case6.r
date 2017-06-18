@@ -184,4 +184,12 @@ calcError(estXY, actXY)
 
 #### Part 2: Alternatvie k-nearest ####
 
+# create weights for neighbors based on signal strength and multiple times X and Y and sum neighbors
+# to get X and Y.
+estXY = predXY(newSignals = onlineSummary[ , 6:12],
+               newAngles = onlineSummary[ , 4],
+               offlineSummary, numAngles = 3, k = 5, weighted=TRUE)
+actXY = onlineSummary[ , c("posX", "posY")]
+calcError(estXY, actXY)
+
 

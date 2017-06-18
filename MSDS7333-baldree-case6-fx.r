@@ -298,11 +298,13 @@ findNN = function(newSignal, trainingSubset) {
   cols = length(trainingSubset)
   diffs = apply(trainingSubset[ , 4:cols], 1, function(x) x - newSignal)
   dists = apply(diffs, 2, function(x) sqrt(sum(x^2)) )
-  closest = order(dists)
-  return(trainingSubset[closest, 1:3 ])
+  #closest = order(dists)
+  closest = cbind(trainingSubset[, 1:3 ], dists)
+  return(closest[order(dists),])
+  #return(trainingSubset[closest, 1:3 ])
 }
 
-predXY = function(newSignals, newAngles, training, numAngles = 1, k = 3){
+predXY = function(newSignals, newAngles, training, numAngles = 1, k = 3, weighted=FALSE){
   # Predict the XY coordinates given a list of signals along with their angles measured and training data.
   # k neighbors will be found to make the prediction of coordinate.
   #
@@ -312,6 +314,8 @@ predXY = function(newSignals, newAngles, training, numAngles = 1, k = 3){
   #   trainingData: data needed for k-nn
   #   numAngles: angles we want to use for prediction
   #   k: number of neighbors to use for prediction
+  #   weighted: if TRUE, distances to neighbors will be used to weight XY for each neighbor to determine
+  #             location.
   #
   closeXY = list(length = nrow(newSignals))
 
@@ -325,8 +329,17 @@ predXY = function(newSignals, newAngles, training, numAngles = 1, k = 3){
   # are 1/d / sum(1/d).
   # could also use a different metric besides Euclidean like Manhattan.
   # could use medians instead of averages when combining neighbors if the distribution of values are quite skewed.
-  estXY = lapply(closeXY, function(x) sapply(x[ , 2:3], function(x) mean(x[1:k])))
-
+  if (!weighted) {
+    estXY = lapply(closeXY, function(x) sapply(x[ , 2:3], function(x) mean(x[1:k])))
+  } else {
+    # sum X and Y weighted neighbor values.
+    estXY = lapply(closeXY, function(x) {
+      wt = (1/x[1:k, 4])/sum(1/x[1:k, 4])
+      xy = cbind(x[1:k,], wt)
+      # sum weighted neighbors
+      return(colSums(xy[1:4, 2:3] * xy[1:4, 4]))
+    })
+  }
   return(do.call("rbind", estXY))
 }
 
