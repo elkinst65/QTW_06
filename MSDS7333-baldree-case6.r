@@ -30,6 +30,9 @@ source("MSDS7333-baldree-case6-fx.r", print.eval=TRUE)
 # read offline data
 offline = readData()
 
+# create factor for all unique xy combinations
+offline$posXY = paste(offline$posX, offline$posY, sep = "-")
+
 # access points (AP) addresses in question
 # note that both devices are Alpha Networks devices because they begin with '00:0f'
 chosenAP = "00:0f:a3:39:e1:c0"
@@ -72,25 +75,8 @@ plotDensitySignalStrength(df)
 
 #### Average Signal Strength Distribution ####
 
-# In order to examine distribution for all locations, angles, and are two interested APs, we
-# will create a summary statistics for all location-orientation-AP combinations with a new factor.
-# For each combination there are around 100 observations.
-offline$posXY = paste(offline$posX, offline$posY, sep="-")
-
-# create data frames for each combination
-byLocAngleAP = with(offline, by(offline, list(posXY, angle, mac), function (x) x))
-
-# summary statistic
-signalSummary = lapply(byLocAngleAP, function(oneLoc) {
-  ans = oneLoc[1, ]
-  ans$medSignal = median(oneLoc$signal)
-  ans$avgSignal = mean(oneLoc$signal)
-  ans$num = length(oneLoc$signal)
-  ans$sdSignal = sd(oneLoc$signal)
-  ans$iqrSignal = IQR(oneLoc$signal)
-  ans
-})
-offlineSummary = do.call("rbind", signalSummary)
+# create offline summary data frame
+offlineSummary = createOfflineSummary(offline)
 
 # plot stddev of average signal strength per targeted APs
 # result: reinforces that both addresses are important for full range coverage
@@ -107,7 +93,9 @@ plotStdDevSignalStrength(df)
 # points will be used to predict their coorindations and the error prediction will be determined
 # for each model.
 
+# look at online data
 macs = unique(offlineSummary$mac)
+macs
 online = readData("online.final.trace.txt", subMacs = macs)
 online$posXY = paste(online$posX, online$posY, sep="-")
 length(unique(online$posXY))
@@ -120,3 +108,45 @@ onlineSummary = castOnline(online)
 # confirm rejected AP is now included
 dim(onlineSummary)
 names(onlineSummary)
+
+# for k-NN, we will include training data with angles close to point in question since angle matters.
+# if we want one angle, then include angles that match the rounded orientation of new observation.
+# if we want two angles, then pick two multiples of 45 degrees that flank the new observation's orientation.
+# if we want three angles, then pick the closest 45 degree increment and on either side of it.
+# what if we didn't want to collapse the signal strengths across the m angles, and
+# instead return a set of mx166 signals for each access point?
+
+
+for (ap in c("", rejectedAP, chosenAP)){
+  test = onlineSummary[, !(names(onlineSummary) %in% ap)]
+  train = subset(offlineSummary, mac != ap)
+  err = predictionErrors(test, train, numberOfAngles = 1, k = 3)
+  print(paste(ap, err))
+}
+
+
+# iterate through 1 to 3 neighbors with 1 to 3 angles for each scenario to determine best combination
+# for cross validation
+# result: it is evident that we should include both access points for location predictions.
+
+for (ap in c("None", rejectedAP, chosenAP)){
+  if (ap == "None"){
+    test = onlineSummary
+    train = offlineSummary
+  } else {
+    test = onlineSummary[, !(names(onlineSummary) %in% ap)]
+    train = subset(offlineSummary, mac != ap)
+  }
+
+  estXY = predXY(newSignals = test[ , 6:11],
+                 newAngles = test[ , 4],
+                 train,
+                 numAngles = 3, k = 3)
+  actXY = test[ , c("posX", "posY")]
+  err = calcError(estXY, actXY)
+
+  print(paste(ap, err))
+}
+
+# perform cross validation and plot for desired AP for a range of k's
+

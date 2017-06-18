@@ -179,14 +179,188 @@ castOnline = function(df) {
   #   df: online data frame
   #
   keepVars = c("posXY", "posX","posY", "orientation", "angle")
+  numOfAPs = length(unique(df$mac))
   byLoc = with(df,
                by(df, list(posXY),
                   function(x) {
                     ans = x[1, keepVars]
                     avgSS = tapply(x$signal, x$mac, mean)
-                    y = matrix(avgSS, nrow = 1, ncol = 7,
+                    y = matrix(avgSS, nrow = 1, ncol = numOfAPs,
                                dimnames = list(ans$posXY, names(avgSS)))
                     cbind(ans, y)
                   }))
   return(do.call("rbind", byLoc))
 }
+
+createOfflineSummary = function(df) {
+  # In order to examine distribution for all locations, angles, and are two interested APs, we
+  # will create a summary statistics for all location-orientation-AP combinations with a new factor.
+  # For each combination there are around 100 observations.
+  #
+  # Args:
+  #   df: offline data frame
+  #
+  df$posXY = paste(df$posX, df$posY, sep="-")
+
+  # create data frames for each combination
+  byLocAngleAP = with(df, by(df, list(posXY, angle, mac), function (x) x))
+
+  # summary statistic
+  signalSummary = lapply(byLocAngleAP, function(oneLoc) {
+    ans = oneLoc[1, ]
+    ans$medSignal = median(oneLoc$signal)
+    ans$avgSignal = mean(oneLoc$signal)
+    ans$num = length(oneLoc$signal)
+    ans$sdSignal = sd(oneLoc$signal)
+    ans$iqrSignal = IQR(oneLoc$signal)
+    ans
+  })
+  return(do.call("rbind", signalSummary))
+}
+
+reshapeSS = function(df,
+                     varSignal = "signal",
+                     keepVars = c("posXY", "posX", "posY"),
+                     sampleAngle = FALSE,
+                     refs = seq(0, 315, by=45)) {
+  # reshape signal strength help function
+  # aggregate signal strengths from these angles and create a data structure similar to onlineSummary
+  # Args:
+  #   df: dataframe to reshape
+  #   varSignal: variable to aggregate
+  #   keepVars: variables to retain
+  #   sampleAngle: true if we want to select one angle at random from df
+  #   refs: angle references
+  #
+  numOfAPs = length(unique(df$mac))
+  byLocation = with(df, by(df, list(posXY),
+                             function(x) {
+                               # select one angle at random for each location
+                               if (sampleAngle) {
+                                 x = x[x$angle == sample(refs, size = 1), ]}
+                               ans = x[1, keepVars]
+                               avgSS = tapply(x[, varSignal], x$mac, mean)
+                               y = matrix(avgSS, nrow = 1, ncol = numOfAPs,
+                                          dimnames = list(ans$posXY, names(avgSS)))
+                               cbind(ans, y)
+                             }))
+  return(do.call("rbind", byLocation))
+}
+
+selectTraininingData = function(newObservationAngle, df = NULL, m = 1){
+  # select observations from df to analyze aggregate signal strengths
+  # from these angles and create a data structure similar to onlineSummary.
+  #
+  # Args:
+  #   newObservationAngle: the angle of the new observation
+  #   df: offline summary data frame
+  #   m: number, between 1 and 5, of angles to keep
+
+  # m is the number of angles to keep between 1 and 5
+  refs = seq(0, by = 45, length  = 8)
+  nearestAngle = roundOrientation(newObservationAngle)
+
+  # handle odd and even m number
+  if (m %% 2 == 1)
+    angles = seq(-45 * (m - 1) /2, 45 * (m - 1) /2, length = m)
+  else {
+    m = m + 1
+    angles = seq(-45 * (m - 1) /2, 45 * (m - 1) /2, length = m)
+    if (sign(newObservationAngle - nearestAngle) > -1)
+      angles = angles[ -1 ]
+    else
+      angles = angles[ -m ]
+  }
+  # map angles to values in refs
+  # negative angles and angles greater than 360 are mapped to appropriate angles; e.g., -45 maps to 335 and 405 maps to 45
+  angles = angles + nearestAngle
+  angles[angles < 0] = angles[ angles < 0 ] + 360
+  angles[angles > 360] = angles[ angles > 360 ] - 360
+  angles = sort(angles)
+  # select observations to analyze
+  subset = df[df$angle %in% angles, ]
+  # reshape signal strength
+  return(reshapeSS(subset, varSignal = "avgSignal"))
+}
+
+findNN = function(newSignal, trainingSubset) {
+  # want to look the distance in terms of signal strengths from these training data to the new
+  # data point. we need to calculate teh distrance from the new point to all observations in the
+  # training set with findNN().
+  # returns locations of the training observations in order of closeness to the new observation's signal strength.
+  #
+  # Args:
+  #   newSignal: signal of new observation
+  #   trainingSubset: training data to find neighbors
+  # Returns:
+  #   training neighbors
+  #
+  diffs = apply(trainingSubset[ , 4:9], 1, function(x) x - newSignal)
+  dists = apply(diffs, 2, function(x) sqrt(sum(x^2)) )
+  closest = order(dists)
+  return(trainingSubset[closest, 1:3 ])
+}
+
+predXY = function(newSignals, newAngles, training, numAngles = 1, k = 3){
+  # Predict the XY coordinates given a list of signals along with their angles measured and training data.
+  # k neighbors will be found to make the prediction of coordinate.
+  #
+  # Args:
+  #   newSignals: list of signals to predict
+  #   newAngles: list of angles for signals to predict
+  #   trainingData: data needed for k-nn
+  #   numAngles: angles we want to use for prediction
+  #   k: number of neighbors to use for prediction
+  #
+  closeXY = list(length = nrow(newSignals))
+
+  for (i in 1:nrow(newSignals)) {
+    trainSS = selectTraininingData(newAngles[i], training, m = numAngles)
+    closeXY[[i]] = findNN(newSignal = as.numeric(newSignals[i, ]), trainSS)
+  }
+  # for some k of nearest neighbors, simply average the first k locations
+  # could have used weights in the average that are inversely proportional to the distance in signal strength
+  # from the test observation. will need to call findNN() to get distance to point. the weights
+  # are 1/d / sum(1/d).
+  # could also use a different metric besides Euclidean like Manhattan.
+  # could use medians instead of averages when combining neighbors if the distribution of values are quite skewed.
+  estXY = lapply(closeXY, function(x) sapply(x[ , 2:3], function(x) mean(x[1:k])))
+  return(do.call("rbind", estXY))
+}
+
+calcError = function(estXY, actualXY) {
+  # compare fit numerically with sum of squared errors
+  #
+  # Args:
+  #   estXY:
+  #   actualXY:
+  # Returns:
+  #   calculated residual sum of squares
+  return(sum(rowSums((estXY - actualXY) ^ 2)))
+}
+
+plotSSErrors = function(err, K){
+  # Plot results as sum of squared errors as function of k
+  #
+  # Args:
+  #   err: Error array
+  #   K: number of neighbors
+  #
+
+  oldPar = par(mar = c(3.1, 3.1, 1, 1), mfrow = c(1,1))
+  par(mai=c(.8, .8, .4, .25))
+
+  plot(y = err, x = (1:K),  type = "l", lwd= 2, ylim = c(1200, 2100), cex.main=.8, cex.axis=.8, cex.lab=.8,
+       xlab = "Number of Neighbors",
+       ylab = "Sum of Square Errors",
+       main = "Cross Validation Section of k")
+
+  rmseMin = min(err)
+  kMin = which(err == rmseMin)[1]
+  segments(x0 = 0, x1 = kMin, y0 = rmseMin, col = gray(0.4), lty = 2, lwd = 2)
+  segments(x0 = kMin, x1 = kMin, y0 = 1100,  y1 = rmseMin, col = grey(0.4), lty = 2, lwd = 2)
+  text(x = kMin - 2, y = rmseMin + 40, label = as.character(round(rmseMin)), col = grey(0.4), cex = .6)
+
+  par(oldPar)
+}
+
