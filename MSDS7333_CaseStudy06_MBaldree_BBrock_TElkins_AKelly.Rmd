@@ -60,6 +60,7 @@ In contrast to the kNN method, another option to explore is a weighted method ba
 The evaluation of this data will allow us to determine which data will be critical to the creation of an accurate model and which will not. Since we have six access points and seven addresses, this thorough investigation will help us decide which address is simply an external interference and if it is beneficial to keep involving said data. As a result, we expect to have a more thorough understanding of the difference between k-Nearest Neighbors and the weighted alternative. 
 
 </font>
+
 ***
 
 ## The Approach (Explained)
