@@ -11,7 +11,7 @@
 #   Which MAC address yields the best prediction of location?
 #   Does using data for both MAC addresses simultaneously yield more, or less, accurate prediction of location?
 #
-# 2. Implement alternative k-nearest precition method using weights on received signal strength.
+# 2. Implement alternative k-nearest prediction method using weights on received signal strength.
 #   For what range of values of weights are you able to obtain better prediction values than for the unweighted approach?
 #     Use calcError() to compare approaches.
 #
@@ -20,9 +20,8 @@
 
 # two digit precision for printing and formatting
 options(digits = 2)
-options(error = recover, warn = 2)
+options(error = recover, warn = 1)
 # include necessary functions
-#if (!exists("processLine", mode="function")) source("MSDS7333-baldree-case6-fx.r")
 source("MSDS7333-baldree-case6-fx.r", print.eval=TRUE)
 
 #### Part 1: Access point MAC address analysis of 00:0f:a3:39:e1:c0 and 00:0f:a3:39:dd:cd ####
@@ -116,19 +115,9 @@ names(onlineSummary)
 # what if we didn't want to collapse the signal strengths across the m angles, and
 # instead return a set of mx166 signals for each access point?
 
-
-for (ap in c("", rejectedAP, chosenAP)){
-  test = onlineSummary[, !(names(onlineSummary) %in% ap)]
-  train = subset(offlineSummary, mac != ap)
-  err = predictionErrors(test, train, numberOfAngles = 1, k = 3)
-  print(paste(ap, err))
-}
-
-
 # iterate through 1 to 3 neighbors with 1 to 3 angles for each scenario to determine best combination
 # for cross validation
 # result: it is evident that we should include both access points for location predictions.
-
 for (ap in c("None", rejectedAP, chosenAP)){
   if (ap == "None"){
     test = onlineSummary
@@ -149,4 +138,47 @@ for (ap in c("None", rejectedAP, chosenAP)){
 }
 
 # perform cross validation and plot for desired AP for a range of k's
+# for each fold, we want to find k-NN estimates from 1..K and aggregate errros over the v folds.
+# choose a v-fold of 11
+v = 11
+# number of locations
+permuteLocs = sample(unique(offlineSummary$posXY))
+# matrix locations into folds
+permuteLocs = matrix(permuteLocs, ncol = v, nrow = floor(length(permuteLocs)/v))
+
+# summarize and format offline
+keepVars = c("posXY", "posX","posY", "orientation", "angle")
+onlineCVSummary = reshapeSS(offline, keepVars = keepVars, sampleAngle = TRUE)
+
+# number of k's
+K = 10
+# errors array
+err = rep(0, K)
+
+# loop through folds
+for (j in 1:v) {
+  testFold = subset(onlineCVSummary, posXY %in% permuteLocs[ , j])
+  trainFold = subset(offlineSummary, posXY %in% permuteLocs[ , -j])
+  actFold = testFold[ , c("posX", "posY")]
+
+  # loop through neighbors
+  for (k in 1:K) {
+    estFold = predXY(newSignals = testFold[ , 6:11],
+                     newAngles = testFold[ , 4],
+                     trainFold, numAngles = 3, k = k)
+    err[k] = err[k] + calcError(estFold, actFold)
+  }
+}
+# plot k to sum of squared errors
+plotSSErrors(err, K)
+
+# experiment with a few k's based on above analysis to determine k
+# that results in lowest sum squared error on test data.
+estXY = predXY(newSignals = onlineSummary[ , 6:11],
+               newAngles = onlineSummary[ , 4],
+               offlineSummary, numAngles = 3, k = 4)
+actXY = onlineSummary[ , c("posX", "posY")]
+calcError(estXY, actXY)
+
+#### Part 2: Alternatvie k-nearest ####
 

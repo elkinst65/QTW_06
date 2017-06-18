@@ -350,15 +350,15 @@ plotSSErrors = function(err, K){
   oldPar = par(mar = c(3.1, 3.1, 1, 1), mfrow = c(1,1))
   par(mai=c(.8, .8, .4, .25))
 
-  plot(y = err, x = (1:K),  type = "l", lwd= 2, ylim = c(1200, 2100), cex.main=.8, cex.axis=.8, cex.lab=.8,
+  plot(y = err, x = (1:K),  type = "l", lwd= 2, ylim = c(900, 2100), cex.main=.8, cex.axis=.8, cex.lab=.8,
        xlab = "Number of Neighbors",
-       ylab = "Sum of Square Errors",
+       ylab = "Sum of Squared Errors",
        main = "Cross Validation Section of k")
 
   rmseMin = min(err)
   kMin = which(err == rmseMin)[1]
   segments(x0 = 0, x1 = kMin, y0 = rmseMin, col = gray(0.4), lty = 2, lwd = 2)
-  segments(x0 = kMin, x1 = kMin, y0 = 1100,  y1 = rmseMin, col = grey(0.4), lty = 2, lwd = 2)
+  segments(x0 = kMin, x1 = kMin, y0 = 800,  y1 = rmseMin, col = grey(0.4), lty = 2, lwd = 2)
   text(x = kMin - 2, y = rmseMin + 40, label = as.character(round(rmseMin)), col = grey(0.4), cex = .6)
 
   par(oldPar)
