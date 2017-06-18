@@ -102,6 +102,61 @@ plotDensitySignalStrength(df)
 ```
 <font color = "red"> &uarr; Having some trouble displaying the individual graphs here. &uarr; </font>
 
+#### Average Signal Strength Distributions
+To examine the distribution for all locations and angles of the two APs in question, we will generate the summary statistics. The summary statistics for all possible combinations of locations and orientations for each AP through the use of a new factor. 
+
+```{r}
+offline$posXY = paste(offline$posX, offline$posY, sep="-")
+
+# create data frames for each combination
+byLocAngleAP = with(offline, by(offline, list(posXY, angle, mac), function(x) x))
+```
+
+Now, we calculate the summary statistics:
+```{r}
+signalSummary = lapply(byLocAngleAP, function(oneLoc) {
+  ans = oneLoc[1, ]
+  ans$medSignal = median(oneLoc$signal)
+  ans$avgSignal = mean(oneLoc$signal)
+  ans$num = length(oneLoc$signal)
+  ans$sdSignal = sd(oneLoc$signal)
+  ans$iqrSignal = IQR(oneLoc$signal)
+  ans
+})
+offlineSummary = do.call("rbind", signalSummary)
+```
+
+The Standard Deviation of the average signal strength per targeted AP
+
+```{r}
+df = subset(offlineSummary, mac %in% c(chosenAP, rejectedAP), c(sdSignal, avgSignal, mac))
+plotStdDevSignalStrength(df)
+```
+
+
+#### Let's dive into the K-Nearest Neighbors:
+<font color = "red"><b>Discuss KNN here</b></font>
+
+```{r}
+macs = unique(offlineSummary$mac)
+online = readData("online.final.trace.txt", subMacs = macs)
+online$posXY = paste(online$posX, online$posY, sep = "-")
+length(unique(online$posXY))
+tabonlineXYA = table(online$posXY, online$angle)
+#output shows measurements were taken at all angles throughout the floor
+tabonlineXYA
+```
+
+Organize the data where each AP is in a column. 
+
+```{r}
+onlineSummary = castOnline(online)
+#confirm rejected AP is included
+dim(onlineSummary)
+names(onlineSummary)
+```
+
+
 * *Which MAC address yields the best prediction of location?including determining locations by using data corresponding to both MAC addresses*
 * *Does using data for both MAC addresses simultaneously yield more, or less accurate prediction of location?*
 
