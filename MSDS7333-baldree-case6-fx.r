@@ -379,3 +379,25 @@ plotSSErrors = function(err, K){
   par(oldPar)
 }
 
+wt_signals <- function(ByAvgSig){
+  
+  # Name: wt_signals
+  # Create weighted data
+  #
+  # Args:
+  #   ByAvgSig:    estimate XY line segment
+  #   
+  # Returns:
+  #   log_ang by weighted_signals matrix
+  
+  # calculate signals
+  signals <- select(ByAvgSig, -posXY, -posX, -posY, -angle) 
+  
+  # calculate log_ang
+  loc_ang <- select(ByAvgSig, posXY, posX, posY, angle)
+  
+  # calculate weighted_signals 
+  weighted_signals <- (1/signals) / rowSums(1/signals)
+  
+  return(cbind(loc_ang, weighted_signals))
+}
