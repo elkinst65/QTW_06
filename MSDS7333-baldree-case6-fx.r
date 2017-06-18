@@ -383,7 +383,17 @@ wt_signals <- function(ByAvgSig){
   
   # Name: wt_signals
   # Create weighted data
+  # Weighted Average Predictor model, where the weights are inversely proportional to the 
+  # "distance" (in signal strength) from the test observation.
+  # This allows us to include the k points that are close, but to differentiate between them
+  # by how close they actually are. 
   #
+  # The weights might be
+  #
+  #         (1/di)/ from 1 to K SUM(1/di)
+  #
+  # for the i-th closest neighboring observation where di is the distance from our new test
+  # point to this reference point (in signal strength space).
   # Args:
   #   ByAvgSig:    estimate XY line segment
   #   
