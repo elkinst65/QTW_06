@@ -122,12 +122,14 @@ for (ap in c("None", rejectedAP, chosenAP)){
   if (ap == "None"){
     test = onlineSummary
     train = offlineSummary
+    newSignals = test[ , 6:12]
   } else {
     test = onlineSummary[, !(names(onlineSummary) %in% ap)]
     train = subset(offlineSummary, mac != ap)
+    newSignals = test[ , 6:11]
   }
 
-  estXY = predXY(newSignals = test[ , 6:11],
+  estXY = predXY(newSignals = newSignals,
                  newAngles = test[ , 4],
                  train,
                  numAngles = 3, k = 3)
@@ -163,7 +165,7 @@ for (j in 1:v) {
 
   # loop through neighbors
   for (k in 1:K) {
-    estFold = predXY(newSignals = testFold[ , 6:11],
+    estFold = predXY(newSignals = testFold[ , 6:12],
                      newAngles = testFold[ , 4],
                      trainFold, numAngles = 3, k = k)
     err[k] = err[k] + calcError(estFold, actFold)
@@ -174,11 +176,12 @@ plotSSErrors(err, K)
 
 # experiment with a few k's based on above analysis to determine k
 # that results in lowest sum squared error on test data.
-estXY = predXY(newSignals = onlineSummary[ , 6:11],
+estXY = predXY(newSignals = onlineSummary[ , 6:12],
                newAngles = onlineSummary[ , 4],
-               offlineSummary, numAngles = 3, k = 4)
+               offlineSummary, numAngles = 3, k = 5)
 actXY = onlineSummary[ , c("posX", "posY")]
 calcError(estXY, actXY)
 
 #### Part 2: Alternatvie k-nearest ####
+
 

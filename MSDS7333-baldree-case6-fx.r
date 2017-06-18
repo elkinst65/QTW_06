@@ -295,7 +295,8 @@ findNN = function(newSignal, trainingSubset) {
   # Returns:
   #   training neighbors
   #
-  diffs = apply(trainingSubset[ , 4:9], 1, function(x) x - newSignal)
+  cols = length(trainingSubset)
+  diffs = apply(trainingSubset[ , 4:cols], 1, function(x) x - newSignal)
   dists = apply(diffs, 2, function(x) sqrt(sum(x^2)) )
   closest = order(dists)
   return(trainingSubset[closest, 1:3 ])
@@ -325,6 +326,7 @@ predXY = function(newSignals, newAngles, training, numAngles = 1, k = 3){
   # could also use a different metric besides Euclidean like Manhattan.
   # could use medians instead of averages when combining neighbors if the distribution of values are quite skewed.
   estXY = lapply(closeXY, function(x) sapply(x[ , 2:3], function(x) mean(x[1:k])))
+
   return(do.call("rbind", estXY))
 }
 
