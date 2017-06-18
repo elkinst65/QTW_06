@@ -175,6 +175,7 @@ for (ap in c("", rejectedAP, chosenAP)){
 }
 ```
 
+
 ```{r}
 #Iterate through 1 to 3 neighbors with 1 to 3 angles for each scenario to determine best combination
 #for cross validation
