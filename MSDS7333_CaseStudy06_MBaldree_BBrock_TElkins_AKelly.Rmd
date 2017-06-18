@@ -2,7 +2,9 @@
 title: "MSDS 7333 Case Study 06"
 author: "Matthew Baldree, Ben Brock, Tom Elkins, Austin Kelly"
 date: "June 17, 2017"
-output: html_notebook
+output:
+  html_notebook: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -24,6 +26,7 @@ knitr::opts_chunk$set(echo = TRUE)
 * *Use calcError() to compare approaches*
 
 ## Introduction
+(insert text here)
 
 ***
 
@@ -97,10 +100,16 @@ Through the use of another perspective, the MAC address with the weaker signal a
 To properly investigate the difference between these two addresses, the signal strength densities for each address should be plotted for each angle. This will help display the defining characteristics for each address. 
 
 ```{r}
+
+```
+
+
+
+```{r}
 df = subset(offline, posX == 24 & posY == 4 & !(mac %in% remainingAP), c(signal, angle, mac))
 plotDensitySignalStrength(df)
 ```
-<font color = "red"> &uarr; Having some trouble displaying the individual graphs here. &uarr; </font>
+<font color = "red"> <b> &uarr; having issues with this diplaying properly... &uarr;</b> </font>
 
 #### Average Signal Strength Distributions
 To examine the distribution for all locations and angles of the two APs in question, we will generate the summary statistics. The summary statistics for all possible combinations of locations and orientations for each AP through the use of a new factor. 
@@ -167,12 +176,7 @@ names(onlineSummary)
 > instead return a set of mx166 signals for each access point?
 
 ```{r}
-for (ap in c("", rejectedAP, chosenAP)){
-  test = onlineSummary[, !(names(onlineSummary) %in% ap)]
-  train = subset(offlineSummary, mac != ap)
-  err = predictionErrors(test, train, numberOfAnglers = 1, k = 3)
-  print(paste(ap, err))
-}
+source("MSDS7333-baldree-case6-fx.r", print.eval = TRUE)
 ```
 
 
@@ -183,15 +187,18 @@ for (ap in c("None", rejectedAP, chosenAP)){
   if (ap == "None"){
     test = onlineSummary
     train = offlineSummary
+    newSignals = test[ , 6:12]
   } else {
     test = onlineSummary[, !(names(onlineSummary) %in% ap)]
+    train = subset(offlineSummary, mac != ap)
+    newSignals = test[,6:11]
   }
   
-  estXY = predXY(newSignals = test[, 6:11],
+  estXY = predXY(newSignals = newSignals,
                  newAngles = test[, 4],
                  train, 
                  numAngles = 3, k = 3)
-  actXY = test[, c("posX", "posY")]
+  actXY = test[ , c("posX", "posY")]
   err = calcError(estXY, actXY)
   
   print(paste(ap, err))
@@ -200,19 +207,78 @@ for (ap in c("None", rejectedAP, chosenAP)){
 
 <font color = "green" size = "5px"><b>This is where we will perform cross validation and plot for desired AP for a range of k's </b></font>
 
+Perform cross validation and plot for desired AP for a range of k's for each fold. We want to find k-NN estimates from 1...k and aggregate errors over the v folds. 
+
+Choose a v-fold of 11
+```{r}
+v = 11
+```
 
 
-* *Which MAC address yields the best prediction of location?including determining locations by using data corresponding to both MAC addresses*
-* *Does using data for both MAC addresses simultaneously yield more, or less accurate prediction of location?*
+```{r}
+
+# number of locations
+permuteLocs = sample(unique(offlineSummary$posXY))
+
+```
+
+```{r}
+# matrix locations into folds
+permuteLocs = matrix(permuteLocs, ncol = v, nrow = floor(length(permuteLocs)/v))
+```
+<font color = "Red"><b>&uarr; come back to this one &uarr;</b></font>
+
+```{r}
+# summarize and format offline
+keepVars = c("posXY", "posX", "posY", "orientation", "angle")
+onlineCVSummary = reshapeSS(offline, keepVars = keepVars, sampleAngle = TRUE)
+```
 
 
-### Part 2
+```{r}
+# number of k's
+K = 10
+# errors array
+err = rep(0, K)
+
+# loop through folds
+for (j in 1:v) {
+  testFold = subset(onlineCVSummary, posXY %in% permuteLocs[ , j])
+  trainFold = subset(offlineSummary, posXY %in% permuteLocs[ , -j])
+  actFold = testFold[ , c("posX", "posY")]
+
+  # loop through neighbors
+  for (k in 1:K) {
+    estFold = predXY(newSignals = testFold[ , 6:12],
+                     newAngles = testFold[ , 4],
+                     trainFold, numAngles = 3, k = k)
+    err[k] = err[k] + calcError(estFold, actFold)
+  }
+}
+# plot k to sum of squared errors
+plotSSErrors(err, K)
+```
+
+```{r}
+# experiment with a few k's based on above analysis to determine k
+# that results in lowest sum squared error on test data.
+estXY = predXY(newSignals = onlineSummary[ , 6:12],
+               newAngles = onlineSummary[ , 4],
+               offlineSummary, numAngles = 3, k = 5)
+actXY = onlineSummary[ , c("posX", "posY")]
+calcError(estXY, actXY)
+```
+
+*** 
+#Part 2: Alternatvie k-nearest neighbors
+```{r}
+# create weights for neighbors based on signal strength and multiple times X and Y and sum neighbors
+# to get X and Y.
+estXY = predXY(newSignals = onlineSummary[ , 6:12],
+               newAngles = onlineSummary[ , 4],
+               offlineSummary, numAngles = 3, k = 5, weighted=TRUE)
+actXY = onlineSummary[ , c("posX", "posY")]
+calcError(estXY, actXY)
+```
 
 ***
-
-### Preliminary Functions to be used: 
-## Let's break this section up and explain each function individually
-
-
-## The Output Achieved (this should be included as close as possible to the output or figures as possible)
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
