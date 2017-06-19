@@ -11,7 +11,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-### Table of Contents:
+### Table of Contents: {#TOC}
 <li>[Assignment Requirements](#AssignmentOutline)</li>
 <li>[Introduction](#Introduction)</li>
 <li>[**Part 1**](#Part1)</li> 
@@ -39,6 +39,8 @@ knitr::opts_chunk$set(echo = TRUE)
 2. Implement alternative k-nearest precition method using weights on received signal strength.
     + *For what range of values of weights are you able to obtain better prediction values than for the unweighted approach?*
     + *Use calcError() to compare approaches*
+
+[&uarr;TOC](#TOC)
 
 ***  
 
@@ -381,6 +383,32 @@ calcError(estXY, actXY)
 
 #Part 2: Alternative k-Nearest Neighbors
 </a>
+
+##2.1: Examination of Power-based search
+The case study document mentioned the curvature in the scatterplots of signal strength versus distance, and suggested using a log function to attempt to remove the curve. Since the signal strength data are reported in dBm, they are already the result of a log function: $dBm = 10*log_{10}(power/1 mW)$; therefore, we converted the reported signal strength values back to a power value and examined the effect that had on location prediction.
+Many of the functions used had to be modified to include the power conversion: $power = 10^{(signal/10)}$ and to use the new field in the calculations.
+Examination of surface plots of power show that the power value tends to isolate the AP more definitively than signal strength because $power \propto 1/distance^2$.
+
+![Contour plot of power for measurements against AP '97:8D' at 0 degrees orientation](contour1.png)
+![Contour plot of power for measurements against AP 'E1:C0' at 0 degrees orientation](contour2.png)
+
+The thought was that by having such a dramatic drop in power over a shorter range, we should be able to reduce the variability in predicted location and get better results.  However, when we simply substituted power for signal strength in the existing functions, the predictions using power were worse than using signal strength.
+![Red lines indicate distance error between predicted location (*) and true location (black squares) using k=4](errors.png)
+
+Using different values for 'k', we had these estimated errors:
+
+| k |Mean distance error|Book-reported error|
+|:-:|:-----------------:|:-----------------:|
+| 1 |779.8603|659|
+| 3 |598.8870|307|
+| 4 |546.8603||
+| 5 |640.8003|276|
+
+Even though the power-based method better isolated the individual APs, we believe that the search algorithm should be redesigned to use all APs, instead of just one or two, due to the power drop-off.  As the distance from the reference AP increases, the power drops off so much that it becomes difficult to narrow down the actual location.  By redesigning the algorithm to use all APs, we may be able to capitalize on the power drop-off to better hone in on the target's location.
+
+
+##2.2: Weighted K-Nearest Neighbors
+
 ```{r}
 # create weights for neighbors based on signal strength and multiple times X and Y and sum neighbors
 # to get X and Y.
