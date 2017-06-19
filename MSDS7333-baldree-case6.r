@@ -182,14 +182,42 @@ estXY = predXY(newSignals = onlineSummary[ , 6:12],
 actXY = onlineSummary[ , c("posX", "posY")]
 calcError(estXY, actXY)
 
-#### Part 2: Alternatvie k-nearest ####
+#### Part 2: Alternative k-nearest ####
 
-# create weights for neighbors based on signal strength and multiple times X and Y and sum neighbors
-# to get X and Y.
+# prediction based on weighted X and Y
 estXY = predXY(newSignals = onlineSummary[ , 6:12],
                newAngles = onlineSummary[ , 4],
-               offlineSummary, numAngles = 3, k = 5, weighted=TRUE)
+               offlineSummary, numAngles = 3, k = 5, weighted = TRUE, exp = .5)
 actXY = onlineSummary[ , c("posX", "posY")]
 calcError(estXY, actXY)
 
+# equivalent to mean SS error result of 210
+estXY = predXY(newSignals = onlineSummary[ , 6:12],
+               newAngles = onlineSummary[ , 4],
+               offlineSummary, numAngles = 3, k = 5, weighted = TRUE, exp = .001)
+actXY = onlineSummary[ , c("posX", "posY")]
+calcError(estXY, actXY)
 
+# # number of e's
+# E = 10
+# # errors array
+# err = rep(0, E)
+#
+# # loop through folds
+# for (j in 1:v) {
+#   testFold = subset(onlineCVSummary, posXY %in% permuteLocs[ , j])
+#   trainFold = subset(offlineSummary, posXY %in% permuteLocs[ , -j])
+#   actFold = testFold[ , c("posX", "posY")]
+#
+#   # loop through powers
+#   for (e in 1:E) {
+#     estFold = predXY(newSignals = testFold[ , 6:12],
+#                      newAngles = testFold[ , 4],
+#                      trainFold, numAngles = 3, k = 5, weighted = TRUE, exp = 1/(10^e))
+#     err[e] = err[e] + calcError(estFold, actFold)
+#   }
+# }
+# # plot e to sum of squared errors
+# plotPowerSSErrors(err, E)
+
+#### Bottom of File ####
