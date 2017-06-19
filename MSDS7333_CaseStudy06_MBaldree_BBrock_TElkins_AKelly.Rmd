@@ -190,9 +190,13 @@ From this figure, it is apparent that there is considerable overlap between the 
 #### Let's dive into the K-Nearest Neighbors:
 <font color = "red"><b>Discuss KNN here</b></font>
 
+First and foremost, let's display the unique MAC addresses: 
 ```{r}
 macs = unique(offlineSummary$mac)
 macs
+```
+
+```{r}
 online = readData("online.final.trace.txt", subMacs = macs)
 online$posXY = paste(online$posX, online$posY, sep = "-")
 length(unique(online$posXY))
@@ -200,18 +204,16 @@ tabonlineXYA = table(online$posXY, online$angle)
 #output shows measurements were taken at all angles throughout the floor
 tabonlineXYA
 ```
+This output shows the signal strengths at each angle. This will be useful later!
+<font color = "red"><b>&uarr;Explain why &uarr;</b></font>
 
 Organize the data where each AP is in a column. 
-
 ```{r}
 onlineSummary = castOnline(online)
 #confirm rejected AP is included
 dim(onlineSummary)
 names(onlineSummary)
 ```
-
-
-<font color = "red">(Continued from baldree-case6.r)</font>
 
 > for k-NN, we will include training data with angles close to point in question since angle matters.
 > if we want one angle, then include angles that match the rounded orientation of new observation.
@@ -220,14 +222,21 @@ names(onlineSummary)
 > what if we didn't want to collapse the signal strengths across the m angles, and
 > instead return a set of mx166 signals for each access point?
 
+When it comes to the kNN, we will need to include the data which include the angles close to the point in question. As observed before, the angle matters! For this exercise, we will need to abide by the following outlines: 
+  
+  * If one angle is desired, then we will include angles which match the rounded orientation of the new observation  
+  * If we want two angles, two multiples of 45 degrees will be chosen in order to encapsulate the nw observation's orientation  
+  * For three angles, the nearest 45 degree increment is chosen and either side will be used.   
+  
+What if we didn't want to collapse the signal strengths across the *m* angles and, instead, we return a set of mx166 signals for each access point? 
+
 ```{r}
 source("MSDS7333-baldree-case6-fx.r", print.eval = TRUE)
 ```
 
+Here, we begin by iterating through 1-3 neighbors at 1-3 angles for each combination to determine which will be best suited for cross-validation: 
 
 ```{r}
-#Iterate through 1 to 3 neighbors with 1 to 3 angles for each scenario to determine best combination
-#for cross validation
 for (ap in c("None", rejectedAP, chosenAP)){
   if (ap == "None"){
     test = onlineSummary
@@ -252,7 +261,7 @@ for (ap in c("None", rejectedAP, chosenAP)){
 
 <font color = "green" size = "5px"><b>This is where we will perform cross validation and plot for desired AP for a range of k's </b></font>
 
-Perform cross validation and plot for desired AP for a range of k's for each fold. We want to find k-NN estimates from 1...k and aggregate errors over the v folds. 
+Perform cross validation and plot for desired AP for a range of k's for each fold. We want to find k-NN estimates from 1 to k and aggregate errors over the v folds. 
 
 Choose a v-fold of 11
 ```{r}
@@ -261,7 +270,6 @@ v = 11
 
 
 ```{r}
-
 # number of locations
 permuteLocs = sample(unique(offlineSummary$posXY))
 
@@ -271,7 +279,7 @@ permuteLocs = sample(unique(offlineSummary$posXY))
 # matrix locations into folds
 permuteLocs = matrix(permuteLocs, ncol = v, nrow = floor(length(permuteLocs)/v))
 ```
-<font color = "Red"><b>&uarr; come back to this one &uarr;</b></font>
+<font color = "Red"><b>&uarr; come back to this one &uarr; For some reason it only runs after it throws an error (e.g.change matrix to sapply, run, change back and run again</b></font>
 
 ```{r}
 # summarize and format offline
