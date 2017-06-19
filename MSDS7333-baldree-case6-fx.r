@@ -283,28 +283,39 @@ selectTraininingData = function(newObservationAngle, df = NULL, m = 1){
   return(reshapeSS(subset, varSignal = "avgSignal"))
 }
 
-findNN = function(newSignal, trainingSubset) {
-  # want to look the distance in terms of signal strengths from these training data to the new
-  # data point. we need to calculate teh distrance from the new point to all observations in the
+findNN = function(newSignal, trainingSubset, k, exp=.5) {
+  # we need to calculate the distrance from the new point to all observations in the
   # training set with findNN().
-  # returns locations of the training observations in order of closeness to the new observation's signal strength.
+  # returns locations of the training observations in order of closeness to the new
+  # observation's signal strength.
+  #
+  # With inspiration from Andrew Clark.
   #
   # Args:
   #   newSignal: signal of new observation
   #   trainingSubset: training data to find neighbors
+  #   k: neighbors
+  #   exp: the exponential to apply to the squared distance. the default is .5 (Euclidean).
   # Returns:
   #   training neighbors
   #
   cols = length(trainingSubset)
   diffs = apply(trainingSubset[ , 4:cols], 1, function(x) x - newSignal)
-  dists = apply(diffs, 2, function(x) sqrt(sum(x^2)) )
-  #closest = order(dists)
-  closest = cbind(trainingSubset[, 1:3 ], dists)
-  return(closest[order(dists),])
-  #return(trainingSubset[closest, 1:3 ])
+  dists = apply(diffs, 2, function(x) (sum(x^2)^exp))
+  closest = order(dists)
+
+  trainingSubset$wts = (1/dists[closest[1]])/sum(1/dists[closest[1:k]])
+  trainingSubset$wtPosX = trainingSubset$wts * trainingSubset$posX
+  trainingSubset$wtPosY = trainingSubset$wts * trainingSubset$posY
+
+  if (length(trainingSubset)==13) {
+    return(trainingSubset[closest, c(1:3, 12:13) ])
+  } else {
+    return(trainingSubset[closest, c(1:3, 11:12) ])
+  }
 }
 
-predXY = function(newSignals, newAngles, training, numAngles = 1, k = 3, weighted=FALSE){
+predXY = function(newSignals, newAngles, training, numAngles = 1, k = 3, weighted = FALSE, exp = .5){
   # Predict the XY coordinates given a list of signals along with their angles measured and training data.
   # k neighbors will be found to make the prediction of coordinate.
   #
@@ -314,14 +325,14 @@ predXY = function(newSignals, newAngles, training, numAngles = 1, k = 3, weighte
   #   trainingData: data needed for k-nn
   #   numAngles: angles we want to use for prediction
   #   k: number of neighbors to use for prediction
-  #   weighted: if TRUE, distances to neighbors will be used to weight XY for each neighbor to determine
-  #             location.
+  #   weighted: should we use weights
+  #   exp: exp default is .5
   #
   closeXY = list(length = nrow(newSignals))
 
   for (i in 1:nrow(newSignals)) {
     trainSS = selectTraininingData(newAngles[i], training, m = numAngles)
-    closeXY[[i]] = findNN(newSignal = as.numeric(newSignals[i, ]), trainSS)
+    closeXY[[i]] = findNN(newSignal = as.numeric(newSignals[i, ]), trainSS, k, exp)
   }
   # for some k of nearest neighbors, simply average the first k locations
   # could have used weights in the average that are inversely proportional to the distance in signal strength
@@ -332,13 +343,7 @@ predXY = function(newSignals, newAngles, training, numAngles = 1, k = 3, weighte
   if (!weighted) {
     estXY = lapply(closeXY, function(x) sapply(x[ , 2:3], function(x) mean(x[1:k])))
   } else {
-    # sum X and Y weighted neighbor values.
-    estXY = lapply(closeXY, function(x) {
-      wt = (1/x[1:k, 4])/sum(1/x[1:k, 4])
-      xy = cbind(x[1:k,], wt)
-      # sum weighted neighbors
-      return(colSums(xy[1:4, 2:3] * xy[1:4, 4]))
-    })
+    estXY = lapply(closeXY, function(x) sapply(x[ , 4:5], function(x) sum(x[1:k])))
   }
   return(do.call("rbind", estXY))
 }
@@ -366,9 +371,34 @@ plotSSErrors = function(err, K){
   par(mai=c(.8, .8, .4, .25))
 
   plot(y = err, x = (1:K),  type = "l", lwd= 2, ylim = c(900, 2100), cex.main=.8, cex.axis=.8, cex.lab=.8,
-       xlab = "Number of Neighbors",
+       xlab = "Number of Neighbors (k)",
        ylab = "Sum of Squared Errors",
        main = "Cross Validation Section of k")
+
+  rmseMin = min(err)
+  kMin = which(err == rmseMin)[1]
+  segments(x0 = 0, x1 = kMin, y0 = rmseMin, col = gray(0.4), lty = 2, lwd = 2)
+  segments(x0 = kMin, x1 = kMin, y0 = 800,  y1 = rmseMin, col = grey(0.4), lty = 2, lwd = 2)
+  text(x = kMin - 2, y = rmseMin + 40, label = as.character(round(rmseMin)), col = grey(0.4), cex = .6)
+
+  par(oldPar)
+}
+
+plotPowerSSErrors = function(err, E){
+  # Plot results as sum of squared errors as function of e
+  #
+  # Args:
+  #   err: Error array
+  #   E: max exponential
+  #
+
+  oldPar = par(mar = c(3.1, 3.1, 1, 1), mfrow = c(1,1))
+  par(mai=c(.8, .8, .4, .25))
+
+  plot(y = err, x = (1:E),  type = "l", lwd= 2, ylim = c(900, 2100), cex.main=.8, cex.axis=.8, cex.lab=.8,
+       xlab = "Squared Distance ^ (1/10^e)",
+       ylab = "Sum of Squared Errors",
+       main = "Cross Validation Section of Weighted k-NN")
 
   rmseMin = min(err)
   kMin = which(err == rmseMin)[1]
