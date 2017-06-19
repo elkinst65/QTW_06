@@ -14,12 +14,15 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Table of Contents:
 <li>[Assignment Requirements](#AssignmentOutline)</li>
 <li>[Introduction](#Introduction)</li>
-<li>[Part 1](#Part1)</li>
+<li>[**Part 1**](#Part1)</li> 
+<ul> 
   <li>[Signal Collection](#SigCol)</li>
   <li>[Signal Strength](#SigStren)</li>
   <li>[Signal Density](#SigDen)</li>
   <li>[Discussion](#Discussion)</li>
-<li>[Part2](#Part 2)</li>
+  <li>[k-Nearest Neighbors](#knn)</li>
+</ul>
+<li>[**Part 2**](#Part 2)</li>
 
 <li>[References](#References)</li>
 <li>[Appendix](#Appendix)</li>
@@ -91,8 +94,9 @@ The evaluation of this data will allow us to determine which data will be critic
 
 
 ***
+<a id='Part1'>
 
-### Part 1
+### Part 1</a>  
 #### The Approach (Explained)
 
 Before we begin, we will need to set the parameters for printing and formatting
@@ -129,8 +133,9 @@ remainingAP = unique(offline[!offline$mac %in% c(chosenAP, rejectedAP),]$mac)
 #### * *Which of these two MAC addresses should be used and which should not be used for Real Time Location System (RTLS)?*
 
 To fully answer this question, we will need to explore exactly what is happening with each MAC address. The results of this exploration will define the parameters needed for such a decision.
+<a id='SigCol'>
 
-#### Here we will create a Signal Collection Map
+#### Here we will create a Signal Collection Map</a>
 For this exercise, we will plot both the count and locations of the signals recorded for the access points. Even though it would be ideal to plot the access points(APs) directly on the map, we do not know their X and Y coordinates.
 
 ```{r}
@@ -140,8 +145,9 @@ plotSignalMaps(c(chosenAP, rejectedAP))
 At first glance, we can see that the maps are quite similar. Unfortunately, the information gained from a visual comparison of these two diagrams does not give us a significant insight into which MAC address should be kept and which should be rejected. The next step to reach our goal will be to look at the individual Signal Strength Distributions
 
 ***
+<a id='SigStren'>
 
-#### Signal Strength Distributions
+#### Signal Strength Distributions</a>
 Plotting the individual signal strength distributions for each AP angle will help add perspective to the information we are working with. For the sake of consistency, we will use the same stationary coordinates listed in the course book (coord : (2, 12)) <font color = "red">(Add reference here.)</font>
 
 ```{r}
@@ -160,8 +166,9 @@ plotBoxplotSignalStrength(df)
 Through the use of another perspective, the MAC address with the weaker signal at (2,12) still has a relatively weak signal when viewed from an AP at the other side of the building. The evidence against the address with the lower signal strength is mounting.
 
 ***
+<a id='SigDen'>
 
-#### Time to investigate Signal Density
+#### Time to investigate Signal Density</a>
 To properly investigate the difference between these two addresses, the signal strength densities for each address should be plotted for each 45 degree angle. This will help display the defining characteristics for each address. The location used for this analysis is the (24,4) from the book. 
 
 
@@ -212,15 +219,22 @@ plotStdDevSignalStrength(df)
 From this figure, it is apparent that there is considerable overlap between the two distributions of signal strength. This is evidence in favor of keeping both addresses in the analysis to provide greater coverage. 
 
 ***
+<a id='Discussion'>
 
+### Discussion</a>
 #### We now have enough information to address these questions before an analysis of kNN is conducted: 
 
 * **Which MAC address yields the best prediction of location? (Include determining locations by using data corresponding to both MAC addresses)**
 * **Does using data for both MAC addresses simultaneously yield a more or less accurate prediction of location?**
 
-The evidence would suggest both addresses should be kept within the analysis to increase the coverage for the entire spectrum of strengths. The address chosen to be rejected not only has a lower signal strength when measured from either end of the building, it also shows to have a higher signal density when it is further away from the receiver. The address chosen to be kept has a higher signal density closer to the receivers. By keeping both addresses, the model should be able to generate a more accurate prediction of the layout of the building. This theory will be tested as we tour through k-Nearest Neighbors. 
+The evidence thus far would suggest both addresses should be kept within the analysis to increase the coverage for the entire spectrum of strengths. The address chosen to be rejected not only has a lower signal strength when measured from either end of the building, but it also shows to have a higher signal density when it is further away from the receiver. The address chosen to be kept has a higher signal density closer to the receivers with the accompanying higher signal strengths. By keeping both addresses, the model should be able to generate a more accurate prediction of the layout of the building. This theory will be tested as we tour k-Nearest Neighbors. 
 
-#### Let's dive into the K-Nearest Neighbors:
+***
+
+<a id='knn'>
+
+#### Let's dive into the K-Nearest Neighbors:</a>
+
 <font color = "red"><b>Discuss KNN here</b></font>
 
 First and foremost, let's display the unique MAC addresses: 
@@ -229,6 +243,7 @@ macs = unique(offlineSummary$mac)
 macs
 ```
 
+With the unique MAC addresses in hand, an accurate profile of the different signal strengths reveived by angle is able to be determined. This can be done with the following code: 
 ```{r}
 online = readData("online.final.trace.txt", subMacs = macs)
 online$posXY = paste(online$posX, online$posY, sep = "-")
@@ -238,7 +253,7 @@ tabonlineXYA = table(online$posXY, online$angle)
 tabonlineXYA
 ```
 This output shows the signal strengths at each angle. This will be useful later!
-<font color = "red"><b>&uarr;Explain why &uarr;</b></font>
+<font color = "red"><b>&larr;Explain why &larr;</b></font>
 
 Organize the data where each AP is in a column. 
 ```{r}
@@ -248,12 +263,16 @@ dim(onlineSummary)
 names(onlineSummary)
 ```
 
+<font color = "purple">
+(this can probably be removed)  
+
 > for k-NN, we will include training data with angles close to point in question since angle matters.
 > if we want one angle, then include angles that match the rounded orientation of new observation.
 > if we want two angles, then pick two multiples of 45 degrees that flank the new observation's orientation.
 > if we want three angles, then pick the closest 45 degree increment and on either side of it.
 > what if we didn't want to collapse the signal strengths across the m angles, and
 > instead return a set of mx166 signals for each access point?
+</font>
 
 When it comes to the kNN, we will need to include the data which include the angles close to the point in question. As observed before, the angle matters! For this exercise, we will need to abide by the following outlines: 
   
@@ -288,6 +307,9 @@ for (ap in c("None", rejectedAP, chosenAP)){
 }
 ```
 
+<font color="red"><b>&uarr;We will need to discuss these results&uarr;</b></font>
+
+
 <font color = "green" size = "5px"><b>This is where we will perform cross validation and plot for desired AP for a range of k's </b></font>
 
 Perform cross validation and plot for desired AP for a range of k's for each fold. We want to find k-NN estimates from 1 to k and aggregate errors over the v folds. 
@@ -297,6 +319,7 @@ Choose a v-fold of 11
 v = 11
 ```
 
+### **Here be Dragons &darr;**
 
 ```{r}
 # number of locations
@@ -341,6 +364,8 @@ for (j in 1:v) {
 plotSSErrors(err, K)
 ```
 
+
+
 ```{r}
 # experiment with a few k's based on above analysis to determine k
 # that results in lowest sum squared error on test data.
@@ -354,7 +379,7 @@ calcError(estXY, actXY)
 *** 
 <a id='Part2'>
 
-#Part 2: Alternatvie k-Nearest Neighbors
+#Part 2: Alternative k-Nearest Neighbors
 </a>
 ```{r}
 # create weights for neighbors based on signal strength and multiple times X and Y and sum neighbors
