@@ -134,11 +134,11 @@ Through the use of another perspective, the MAC address with the weaker signal a
 To properly investigate the difference between these two addresses, the signal strength densities for each address should be plotted for each 45 degree angle. This will help display the defining characteristics for each address. The location used for this analysis is the (24,4) from the book. 
 
 
-```{r}
+```{r, fig.height=10}
 df = subset(offline, posX == 24 & posY == 4 & !(mac %in% remainingAP), c(signal, angle, mac))
 plotDensitySignalStrength(df)
 ```
-<font color = "red"> <b> &uarr; having issues with this diplaying properly... &uarr;</b> </font>
+
 
 From this plot, it can be seen that the rejectedAP has a higher signal density at lower strength while the acceptedAP has a higher density coverage at a higher strength. Judging by the distributions themselves, it seems as if many of the plots are normally distributed while some of the other plots (i.e. "dd:cd" at 180 and "e1:c0" at 315) are heavily skewed or even bimodal. Looking at each AP from top to bottom, there seems to exist an obvious pattern with respect to angle. This would suggest the median of each distribution varies by angle and attributes to a difference in perceived strength. 
 
@@ -148,39 +148,51 @@ This evidence would suggest both addresses are kept within the analysis to incre
 To examine the distribution for all locations and angles of the two APs in question, we will generate the summary statistics. The summary statistics for all possible combinations of locations and orientations for each AP through the use of a new factor. 
 
 ```{r}
-offline$posXY = paste(offline$posX, offline$posY, sep="-")
+offlineSummary = createOfflineSummary(offline)
+```
 
+
+
+
+### <font color = "red"> &darr; this section may no longer be needed. Now missing from the original code. &darr;</font>  
+```{r}
+#offline$posXY = paste(offline$posX, offline$posY, sep="-")
+#
 # create data frames for each combination
-byLocAngleAP = with(offline, by(offline, list(posXY, angle, mac), function(x) x))
+#byLocAngleAP = with(offline, by(offline, list(posXY, angle, mac), function(x) x))
 ```
 
 Now, we calculate the summary statistics:
 ```{r}
-signalSummary = lapply(byLocAngleAP, function(oneLoc) {
-  ans = oneLoc[1, ]
-  ans$medSignal = median(oneLoc$signal)
-  ans$avgSignal = mean(oneLoc$signal)
-  ans$num = length(oneLoc$signal)
-  ans$sdSignal = sd(oneLoc$signal)
-  ans$iqrSignal = IQR(oneLoc$signal)
-  ans
-})
-offlineSummary = do.call("rbind", signalSummary)
+#signalSummary = lapply(byLocAngleAP, function(oneLoc) {
+#  ans = oneLoc[1, ]
+#  ans$medSignal = median(oneLoc$signal)
+#  ans$avgSignal = mean(oneLoc$signal)
+#  ans$num = length(oneLoc$signal)
+#  ans$sdSignal = sd(oneLoc$signal)
+#  ans$iqrSignal = IQR(oneLoc$signal)
+#  ans
+#})
+#offlineSummary = do.call("rbind", signalSummary)
 ```
+### <font color = "red"> &uarr; this section may no longer be needed. Now missing from the original code. &uarr;</font>  
 
-The Standard Deviation of the average signal strength per targeted AP
+
+The Standard Deviation of the average signal strength per targeted AP:
 
 ```{r}
 df = subset(offlineSummary, mac %in% c(chosenAP, rejectedAP), c(sdSignal, avgSignal, mac))
 plotStdDevSignalStrength(df)
 ```
 
+From this figure, it is apparent that there is considerable overlap between the two distributions of signal strength. This is evidence in favor of keeping both addresses in the analysis to provide greater coverage. 
 
 #### Let's dive into the K-Nearest Neighbors:
 <font color = "red"><b>Discuss KNN here</b></font>
 
 ```{r}
 macs = unique(offlineSummary$mac)
+macs
 online = readData("online.final.trace.txt", subMacs = macs)
 online$posXY = paste(online$posX, online$posY, sep = "-")
 length(unique(online$posXY))
