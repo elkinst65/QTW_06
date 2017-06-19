@@ -1,0 +1,1 @@
+#Create weighted datawt_signals <- function(ByAvgSig){  signals <- select(ByAvgSig, -posXY, -posX, -posY, -angle)   loc_ang <- select(ByAvgSig, posXY, posX, posY, angle)    weighted_signals <- (1/signals) / rowSums(1/signals)    return(cbind(loc_ang, weighted_signals))}wtOfflineByAvgSig <- wt_signals(offlineByAvgSig)wtOnlineByAvgSig <- wt_signals(onlineByAvgSig)

@@ -408,4 +408,3 @@ plotPowerSSErrors = function(err, E){
 
   par(oldPar)
 }
-
