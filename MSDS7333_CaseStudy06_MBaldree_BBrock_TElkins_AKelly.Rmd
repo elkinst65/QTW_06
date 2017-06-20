@@ -464,6 +464,14 @@ Future work into this approach with appropriate weighting could prove to reduce 
 [&uarr;TOC](#TOC)
 
 ## 2.3: Weighted K-Nearest Neighbors {#WtKNN}
+In this exercise, we investigated using an alternative k-nearest prediction method using the weighted 
+K-nearest neighbors approach.  The calculation of the Euclidean distance error was found to be 1194, whereas the Mean SS error was found to be 210.  The Euclidean distance weighted k-nearest neighbors 
+method had the highest error, while the Mean SS weighted K-nearest neighbors method had the smaller
+error.
+
+| k |Euclidean distance error|Mean SS error|
+|:-:|:-----------------:|:-----------------:|
+| |1194|210|
 
 Prediction based on weighted X and Y &darr;
 
