@@ -396,17 +396,30 @@ Even though the power-based method better isolated the individual APs, we believ
 
 ##2.2: Weighted K-Nearest Neighbors
 
+Prediction based on weighted X and Y &darr;
+
 ```{r}
-# create weights for neighbors based on signal strength and multiple times X and Y and sum neighbors
-# to get X and Y.
 estXY = predXY(newSignals = onlineSummary[ , 6:12],
-               newAngles = onlineSummary[ , 4],
-               offlineSummary, numAngles = 3, k = 5, weighted=TRUE)
-actXY = onlineSummary[ , c("posX", "posY")]
+               newAngles = onlineSummary[, 4],
+               offlineSummary, numAngles = 3, k = 5, weighted = TRUE, exp = .5)
+actXY = onlineSummary[, c("posX","posY")]
 calcError(estXY, actXY)
 ```
 
+&darr; this is equivalent to mean SS error result of 210
+
+```{r}
+estXY = predXY(newSignals = onlineSummary[ , 6:12],
+               newAngles = onlineSummary[, 4],
+               offlineSummary, numAngles = 3, k = 5, weighted = TRUE, exp = .001)
+actXY = onlineSummary[, c("posX","posY")]
+calcError(estXY, actXY)
+```
+
+
 ***
+***
+
 <a id='References'>
 
 ### References  
@@ -417,7 +430,7 @@ calcError(estXY, actXY)
 ### Appendix (including function code)  
 </a>
 This is the code used to define the functions used within the study. It can be found under 'MSDS7333-baldree-case6-fx.r' which is included in the final submission  
-```{r}
+```{r eval = FALSE, echo=FALSE}
 processLine = function(x)
 {
   # Process a line of text returning a 11x10 matrix of tokens
