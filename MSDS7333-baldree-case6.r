@@ -140,7 +140,7 @@ for (ap in c("None", rejectedAP, chosenAP)){
 }
 
 # perform cross validation and plot for desired AP for a range of k's
-# for each fold, we want to find k-NN estimates from 1..K and aggregate errros over the v folds.
+# for each fold, we want to find k-NN estimates from 1..K and aggregate errors over the v folds.
 # choose a v-fold of 11
 v = 11
 # number of locations
