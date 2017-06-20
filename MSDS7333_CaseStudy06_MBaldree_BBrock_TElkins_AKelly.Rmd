@@ -272,7 +272,7 @@ When it comes to the kNN, we need to include the data which include the angles c
   * If we want two angles, two multiples of 45 degrees will be chosen in order to encapsulate the new observation's orientation  
   * For three angles, the nearest 45 degree increment is chosen and either side will be used.   
 
-Now, we analyze our three scenarios for both APs included, rejectedAP left out, and then chosenAP left out. Three neighbors were used for three angles. The accuracy for each scenario as determined by the sum of squares difference between estimated X,Y and actual X,Y were outputted as well. Cross-validation was not used at this time.
+Now, we analyze our three scenarios for both APs included, rejectedAP left out, and then chosenAP left out. Three neighbors were used for three angles. The accuracy for each scenario as determined by the sum of squares difference between estimated X,Y and actual X,Y were output as well. Cross-validation was not used at this time.
 
 ```{r}
 for (ap in c("None", rejectedAP, chosenAP)){
