@@ -31,14 +31,14 @@ knitr::opts_chunk$set(echo = TRUE)
 <a id='AssignmentOutline'>
 
 ### <b>Assignment</b> </a>
-1. Conduct a more thorough data analysis into these two MAC addresses, including determining locations by using data corresponding to both the chosen and rejected Access Points:
+1. Conduct a more thorough data analysis into these two MAC addresses, including determining locations by using data corresponding to both the *chosen* and *rejected* Access Points:
     + *Which of these two MAC addresses should be used and which should not be used for Real Time Location System (RTLS)?*
-    + *Which MAC address yields the best prediction of location? (Including determining locations by using data corresponding to both MAC addresses)*
+    + *Which MAC address yields the best prediction of location? (Including determining locations by using data corresponding to both MAC addresses)?*
     + *Does using data for both MAC addresses simultaneously yield more, or less accurate prediction of location?*
 
-2. Implement alternative k-nearest precition method using weights on received signal strength.
+2. Implement alternative k-nearest prediction method using weights on received signal strength.
     + *For what range of values of weights are you able to obtain better prediction values than for the unweighted approach?*
-    + *Use calcError() to compare approaches*
+    + *Use calcError() to compare approaches.*
 
 [&uarr;TOC](#TOC)
 
@@ -55,45 +55,32 @@ knitr::opts_chunk$set(echo = TRUE)
 - Discuss the goal of the case study
 </b></font>
 
-For this case study, the overall goal is to use K-Nearest Neighbors (kNN) and an alternative weighted method to be able to determine how different handheld devices moved through a building <font color = "red">(at Dartmouth. Let's confirm this and add some more detail)</font>. This can be achieved with an analysis of how the different Media Access Control (MAC) addresses for each of the devices interacted with the Access Points (APs) of the building. In this case, the APs are routers with static locations throughout the building. 
+The case study in chapter 1 of the book Data Science in R by Nolan and Lang presented an indoor posiitoning system (IPS) for WiFi devices on a floor of a building at the University of Mannheim. The IPS was trained and tested with data collected at the University with a hand-held device on a grid of 166 points spaced one meter apart in the hallways. The algorithm for the IPS is the K-Nearest Neighbors (k-NN). 
+
+The original investigators used a hand-held scanning device at each point and recorded a timestamp, mac id of the device, position of the device, the orientation of the device, and the following data for each WiFi access point (AP): recevied signal strength, channel frequency, and device mode of operation. The WiFi APs were located throughout the building and identified by their unique Media Access Control (MAC) address.
+
+<font color = "red"><b>
+- Need example training input line
+- Need table of training data: name, description, type, example
+</b></font>
 
 <font color = "purple"><b>
 - Discuss the different Access points and MAC Addresses
 </b></font>
 
-The access points as stated above allow for the tracking of the devices thanks to the logged history of times, signal strengths and angles for each MAC address with respect to each access point.<font color = "red">&larr;(consider fragmenting this sentence)</font> From the information that has been given, there are known to be six APs on the building floor in question. However, this is a problem since there are seven APs recorded. To determine which AP to exclude from the analysis, we will need to compare these two addresses:
-
-    chosenAP   = "00:0f:a3:39:e1:c0"
-    rejectedAP = "00:0f:a3:39:dd:cd"
-
-and decide which to exclude and why.
-
-<font color = "purple"><b>
-- Discuss why we're trying to remove one
-</b></font>
-
-Removing one of these APs will allow us to remove noise from the resulting model. Since only six APs are recorded as existing on the floor, the presence of a seventh points to external interference. Once the superfluous address has been identified, we will execute testing to determine whether there will be any benefit added to the model by keeping or excluding said data. This decision will ultimately lead to a better prediction of location of each device within this floorplan. 
+Six APs were initially discovered in the original anlysis in the case study. The authors then decided to reject AP "00:0f:a3:39:dd:cd" (rejectedAP) stating it was identified as an extra address. The details of their reasoning was not clearly explained. The authors chose AP "00:0f:a3:39:e1:c0" (chosenAP) instead. This case study will evalute the author's decision and decide if the IPS system would be more accurate with the chosenAP, rejectedAP, or both APs.
 
 <font color = "purple"><b>
 - BRIEF overview of K-Nearest Neighbors
 </b></font>
 
-K-Nearest Neighbors (kNN) is an ideal method to use in this case as the goal is to be able to predict the path of each device on their journey through the building. To utilize this method, we use separate testing and training data. The training data are known observations from well documented locations of both the handheld devices and APs. These locations are represented by the angle at which the AP received the signal from the device as well as the overall signal strength received.
+k-NN algorithm is an ideal method because we have an abundant training data and our prediction is not based on parametric relationship with the data. It is based on proximity. The downside is the model must hold the entire training data set for maximum predictability. The k-NN model is trained on the training data and then tested on the test data to determine its accuracy. The number of neighbors to used for location prediction is adjusted to reduce the accuracy.
 
-With this training data, each observation is evaluated along with the observations which occur in the general vicinity in the training data. These occurrences allow for the different probabilities of occurrence to be proposed through the model. Once this model has been generated for k neighbors, it is then tested against the unobserved test data and adapted to suit what actually occurs. This allows for an accurate gauge of accuracy of the model and is recreated for a span of possible k neighbors to exhaust the total possible number of observations. 
-
-<font color = "purple"><b>
-- Discuss the alternative weighted method. 
+<font color = "red"><b>
+- can we still a graphic from scikit-learn of k-NN model?
 </b></font>
 
-In contrast to the kNN method, another option to explore is a weighted method based on the signal strength received at the access point. This method involves defining a new metric where the weight of each observation is inversely proportional to the distance from the test observation. From a topographical standpoint, the observations which are closest to the observation will have a much higher influence than those which exist further away. 
-
-<font color = "purple"><b>
-- Discuss potential for prediction and what we expect to come of this.
-</b></font>
-
-The evaluation of this data will allow us to determine which data will be critical to the creation of an accurate model and which will not. Since we have six access points and seven addresses, this thorough investigation will help us decide which address is simply an external interference and if it is beneficial to keep involving said data. As a result, we expect to have a more thorough understanding of the difference between k-Nearest Neighbors and the weighted alternative. 
-
+In part 1 of the case study, the author's original decision to rejected an AP is revisited to see if this was the best decision. In part 2, the prediction of X,Y based on the average of its neighbors is revisited and modified to a weighted sum of X,Y to determine if this change will produce better predictions. Alternate weights will also be analyzed.
 
 ***
 <a id='Part1'>
