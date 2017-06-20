@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ### Table of Contents: {#TOC}
 <li>[Assignment Requirements](#AssignmentOutline)</li>
 <li>[Introduction](#Introduction)</li>
-<li>[**Part 1**](#Part1)</li> 
+<li>[**Part 1**](#Part1)</li>
 <ul> 
   <li>[Signal Collection](#SigCol)</li>
   <li>[Signal Strength](#SigStren)</li>
@@ -22,11 +22,14 @@ knitr::opts_chunk$set(echo = TRUE)
   <li>[Discussion](#Discussion)</li>
   <li>[k-Nearest Neighbors](#knn)</li>
 </ul>
-<li>[**Part 2**](#Part 2)</li>
-
+<li>[**Part 2**](#Part2)</li>
+<ul> 
+  <li>[2.1 Examining Power](#ExamPower)</li>
+  <li>[2.2 Examining Weights](#ExamWeight)</li>
+  <li>[2.3 Weighted kNN](#WtKNN)</li>
+</ul>
 <li>[References](#References)</li>
 <li>[Appendix](#Appendix)</li>
-
 
 <a id='AssignmentOutline'>
 
@@ -36,7 +39,7 @@ knitr::opts_chunk$set(echo = TRUE)
     + *Which MAC address yields the best prediction of location? (Including determining locations by using data corresponding to both MAC addresses)?*
     + *Does using data for both MAC addresses simultaneously yield more, or less accurate prediction of location?*
 
-2. Implement alternative k-nearest prediction method using weights on received signal strength.
+2. Implement alternative k-nearest neighbors prediction method using weights on received signal strength.
     + *For what range of values of weights are you able to obtain better prediction values than for the unweighted approach?*
     + *Use calcError() to compare approaches.*
 
@@ -55,36 +58,58 @@ knitr::opts_chunk$set(echo = TRUE)
 - Discuss the goal of the case study
 </b></font>
 
-The case study in chapter 1 of the book Data Science in R by Nolan and Lang presented an indoor posiitoning system (IPS) for WiFi devices on a floor of a building at the University of Mannheim. The IPS was trained and tested with data collected at the University with a hand-held device on a grid of 166 points spaced one meter apart in the hallways. The algorithm for the IPS is the K-Nearest Neighbors (k-NN) [1]. 
+The case study in chapter 1 of the book *Data Science in R* by Nolan and Lang presented an indoor posiitoning system (IPS) for WiFi devices on a floor of a building at the University of Mannheim. The IPS was trained and tested with data collected at the University with a hand-held device on a grid of 166 points spaced one meter apart in the hallways. The algorithm for the IPS is the K-Nearest Neighbors (k-NN) [1](#REF01). 
 
-The original investigators used a hand-held scanning device at each point and recorded a timestamp, mac id of the device, position of the device, the orientation of the device, and the following data for each WiFi access point (AP): recevied signal strength, channel frequency, and device mode of operation. The WiFi APs were located throughout the building and identified by their unique Media Access Control (MAC) address.
+The original investigators used a hand-held scanning device at each point and recorded a timestamp, MAC id of the device, position of the device, the orientation of the device, and the following data for each WiFi access point (AP): recevied signal strength, channel frequency, and device mode of operation. The WiFi APs were located throughout the building and identified by their unique Media Access Control (MAC) address.
 
 <font color = "red"><b>
 - Need example training input line
+
+t=1139643118358;id=00:02:2D:21:0F:33;pos=0.0,0.0,0.0;degree=0.0;00:14:bf:b1:97:8a=-38,2437000000,3;00:14:bf:b1:97:90=-56,2427000000,3;00:0f:a3:39:e1:c0=-53,2462000000,3;00:14:bf:b1:97:8d=-65,2442000000,3;00:14:bf:b1:97:81=-65,2422000000,3;00:14:bf:3b:c7:c6=-66,2432000000,3;00:0f:a3:39:dd:cd=-75,2412000000,3;00:0f:a3:39:e0:4b=-78,2462000000,3;00:0f:a3:39:e2:10=-87,2437000000,3;02:64:fb:68:52:e6=-88,2447000000,1;02:00:42:55:31:00=-84,2457000000,1
+
+
 - Need table of training data: name, description, type, example
+
+|Data Element|Description|Type|Example|
+|:-|:-|:-|:-|
+|t |timestamp (milliseconds since midnight 1/1/1970)|long integer|t=1139643118358 --> 2/11/2006 07:35:28|
+|id|target device MAC address|6-octet sequence in hexadecimal|id=00:02:2D:21:0F:33|
+|pos|coordinates of the target device in meters from a choke point in the host building|3 floating point values, comma-separated|pos=0.0,0.0,0.0|
+|degree|Orientation of the target device (with respect to North) in degrees|float|degree=0.0|
+|MAC Address|one or more reports from various Access Points|comma-separated value list|00:14:bf:b1:97:8a=-38,2437000000,3|
+
+|Data Element|Description|Type|Example|
+|-|-|-|-|
+|signal|The signal strength reported for the Access Point in dBm|integer|-38|
+|channel|The frequency of the channel used by the Access Point in Hz|integer|2437000000|
+|mode|The mode of operation for the Access Point (1 = Ad Hoc, 3 = Access Point)|integer|3|
+
 </b></font>
 
 <font color = "purple"><b>
 - Discuss the different Access points and MAC Addresses
 </b></font>
 
-Six APs were initially discovered in the original anlysis in the case study. The authors then decided to reject AP "00:0f:a3:39:dd:cd" (rejectedAP) stating it was identified as an extra address. The details of their reasoning was not clearly explained. The authors chose AP "00:0f:a3:39:e1:c0" (chosenAP) instead. This case study will evalute the author's decision and decide if the IPS system would be more accurate with the chosenAP, rejectedAP, or both APs.
+Six APs were initially discovered in the original analysis in the case study. The authors then decided to reject AP "00:0f:a3:39:dd:cd" (rejectedAP) stating it was identified as an extra address. The details of their reasoning was not clearly explained. The authors chose AP "00:0f:a3:39:e1:c0" (chosenAP) instead. This case study will evalute the author's decision and decide if the IPS system would be more accurate with the chosenAP, rejectedAP, or both APs.
 
 <font color = "purple"><b>
 - BRIEF overview of K-Nearest Neighbors
 </b></font>
 
-k-NN algorithm is an ideal method because we have an abundant training data and our prediction is not based on parametric relationship with the data. It is based on proximity. The downside is the model must hold the entire training data set for maximum predictability. The k-NN model is trained on the training data and then tested on the test data to determine its accuracy. The number of neighbors to used for location prediction is adjusted to reduce the accuracy.
+The k-NN algorithm is an ideal method because we have an abundant training data set and our prediction is not based on parametric relationship with the data. It is based on proximity. The downside is the model must hold the entire training data set in memory for maximum predictability. The k-NN model is trained on the training data and then tested on the test data to determine its accuracy. The number of neighbors to be used for location prediction is adjusted to improve the accuracy.
 
 <font color = "red"><b>
 - can we still a graphic from scikit-learn of k-NN model?
 </b></font>
 
-In part 1 of the case study, the author's original decision to rejected an AP is revisited to see if this was the best decision. In part 2, the prediction of X,Y based on the average of its neighbors is revisited and modified to a weighted sum of X,Y to determine if this change will produce better predictions. Alternate weights will alsobe analyzed.
+In part 1 of the case study, the author's original decision to reject an AP is revisited to see if this was the best decision. In part 2, the prediction of X,Y based on the average of its neighbors is revisited and modified to a weighted sum of X,Y to determine if this change will produce better predictions. Alternate weights will also be analyzed.
+
+[&uarr;TOC](#TOC)
 
 ***
 # <a id='Part1'>Part 1: Access Point Analysis</a>  
-Majority of the code in this case study was leveraged from [1]. The code was refactored for readibility and modified for part 1 and 2 analysis.
+
+The majority of the code in this case study was leveraged from [1](#Ref01). The code was refactored for readibility and modified for part 1 and 2 analysis.
 
 ## 1.1 Read and Clean the Data
 
@@ -106,42 +131,53 @@ offline = readData()
 
 ## 1.2 Analyze the Two Acess Points
 
-Define the access point (AP) mac addresses that will be analyzed. We also define a variable for all remaining APs.
+Define the access point (AP) MAC addresses that will be analyzed. We also define a variable for all remaining APs.
 
 ```{r}
 chosenAP = "00:0f:a3:39:e1:c0"
 rejectedAP = "00:0f:a3:39:dd:cd"
 remainingAP = unique(offline[!offline$mac %in% c(chosenAP, rejectedAP),]$mac)
 ```
+[&uarr;TOC](#TOC)
+
 
 ### 1.2.1 <a id='SigCol'>Signal Map</a>
-Plot the total signals captured for each AP to determineif the coverage was similar. A severe gap in the number of points captured could be a reason for lower predictability.
+Plot the total signals captured for each AP to determine if the coverage was similar. A severe gap in the number of points captured could be a reason for lower predictability.
 
-The total signals for each AP mac in question, chosenAP and rejectedAP, are plotted at their respective X,Y point. We are unable to plot the access points (APs) directly on the map because we do not know their X, Y coordinates.
+The total signals for each AP MAC in question, chosenAP and rejectedAP, are plotted at their respective X,Y point. We are unable to plot the access points (APs) directly on the map because we do not know their X, Y coordinates.
 
 ```{r}
 plotSignalMaps(c(chosenAP, rejectedAP))
+#  figure 1 - number of reports at each location for the rejected and chosen APs.
 ```
 
-The maps show there were near equal amount of training points captured for both APs. A visual comparison of 
-these two diagrams does not give us a significant insight into which MAC address should be kept and which should be rejected. Now, let us examine the distribution strength of the APs.
+The maps show there were near equal amounts of training points captured for both APs. A visual comparison of 
+these two diagrams does not give us sufficient insight into which MAC address should be kept and which should be rejected. Now, let us examine the distribution strength of the APs.
+
+[&uarr;TOC](#TOC)
+
 
 ### 1.2.1 <a id='SigStren'> Signal Strength Distributions</a>
-Plot the signal strength distributions for each AP per angle for better understanding at location (X=2, Y=12). A more thorough analysis would examine the distributions at all locations points, but time did not permit this in depth analysis. 
+Plot the signal strength distributions for each AP per angle for better understanding at location (X=2, Y=12). A more thorough analysis would examine the distributions at all locations points, but time did not permit this in-depth analysis. 
 
 ```{r}
 df = subset(offline, posX ==2 & posY == 12 & !(mac %in% remainingAP), c(signal, angle, mac))
 plotBoxplotSignalStrength(df)
+# figure 2 - Signal strength distribution across both Access Points
 ```
 
-The higher the decibel-milliwatts means a stronger signal strength which indicates a closer physical position to the AP since signal strengths decrease exponentially with distance.<font color="red">Find this in the book and cite it.</font> The distribution shows AP "e1:c0" has a stronger signal strength at this location than "dd:cd." But, the two of them together cover a wider range of signal coverage. What would this plot look like if we moved the fixed location point on the other side of the building at (X=33, Y=3)?
+The higher the decibel-milliwatts means a stronger signal strength which indicates a closer physical position to the AP since signal strength decreases exponentially with distance.<font color="red">Find this in the book and cite it.</font> The distribution shows AP "e1:c0" has a stronger signal strength at this location than "dd:cd." But, the two of them together cover a wider range of signal coverage. What would this plot look like if we moved the fixed location point on the other side of the building at (X=33, Y=3)?
  
 ```{r}
 # Let's focus on the fixed point (33,3)
 df = subset(offline, posX == 33 & posY == 3 & !(mac %in% remainingAP), c(signal, angle, mac))
 plotBoxplotSignalStrength(df)
+# figure 3 - Signal strength distribution for a point at the other end of the building
 ```
-This plot is similar to the previous distribution but with no outliers. At this point we know signal strength is different for the two access points. We don't know if this will effect our prediction accuracy. Now, let us analyzed the two APs signal strength distribution over angles.
+This plot is similar to the previous distribution but with no outliers. At this point we know signal strength is different for the two access points. We don't know if this will affect our prediction accuracy. Now, let us analyze the two AP's signal strength distribution over angles.
+
+[&uarr;TOC](#TOC)
+
 
 ### 1.2.2 <a id='SigDen'> Signal Density</a>
 Plot signal strength frequency per capture angle for normalcy. 
@@ -149,11 +185,12 @@ Plot signal strength frequency per capture angle for normalcy.
 ```{r, fig.height=10}
 df = subset(offline, posX == 24 & posY == 4 & !(mac %in% remainingAP), c(signal, angle, mac))
 plotDensitySignalStrength(df)
+# figure 4 - Signal strength distribution across angles
 ```
-The above plot, shows the rejectedAP "dd:cd" has a higher signal density at lower strength while the acceptedAP "e1:c0" has a higher density coverage at a higher strength. The distributions show that many of the plots are normally distributed while some of them; i.e., "dd:cd" at 180 and "e1:c0" at 315 are heavily skewed or even bimodal. Looking at each AP from top to bottom, there seems to exist an obvious pattern with respect to angle. This would suggest the median of each distribution varies by angle and attributes to a difference in perceived strength. This means the angle of the device contributes to the APs strength of signal.
+The above plot, shows the rejectedAP "dd:cd" has a higher signal density at lower strength while the acceptedAP "e1:c0" has a higher density coverage at a higher strength. The distributions show that many of the plots are normally distributed while some of them; i.e., "dd:cd" at 180 and "e1:c0" at 315 are heavily skewed or even bimodal. Looking at each AP from top to bottom, there seems to exist an obvious pattern with respect to angle. This would suggest the median of each distribution varies by angle which can be attributed to a difference in perceived strength. This means the angle of the device contributes to the APs strength of signal.
 
 #### Average Signal Strength Distributions
-Plot the signal strengh distribution for all locations through the average signal strenth for all locations by angle. Summary statistics for all possible locations by angle was created. 
+Plot the signal strength distribution for all locations through the average signal strength for all locations by angle. Summary statistics for all possible locations by angle was created. 
 
 ```{r}
 offlineSummary = createOfflineSummary(offline)
@@ -186,20 +223,26 @@ The Standard Deviation of the average signal strength per targeted AP:
 ```{r}
 df = subset(offlineSummary, mac %in% c(chosenAP, rejectedAP), c(sdSignal, avgSignal, mac))
 plotStdDevSignalStrength(df)
+# figure 5 - Standard deviation of average signal strength
 ```
 
 This above figure shows that there is considerable overlap between the two distributions of signal strength. This suggest that there may be value in keeping both APs in the k-NN model.
 
+[&uarr;TOC](#TOC)
+
 ### 1.2.3 <a id='Discussion'>Discussion</a>
 The data analysis shows that both APs are very similar except for the signal strength coverage. We do not have enough information at this time to determine if one AP is better or worse than the other. Therefore, we will examine each one in the k-NN model along with both of them to determine which option yields the best accuracy.
 
+[&uarr;TOC](#TOC)
+
 ### 1.2.4 <a id='knn'>K-Nearest Neighbors</a>
-k-NN is a non-parametric machine learning algorithm that is instance-based learning as opposed to generalize learning. Our first implementation of k-NN learns based on teh number of neighbors within signal strength distance to the point in question from the training points.[2] 
+k-NN is a non-parametric machine learning algorithm that is instance-based learning as opposed to generalized learning. Our first implementation of k-NN learns based on the number of neighbors within signal strength distance to the point in question from the training points.[2](#Ref02) 
 
 Print out the unique AP MAC addresses showing that we have six of them.
 ```{r}
 macs = unique(offlineSummary$mac)
 macs
+# Table 3 - Unique Access Points
 ```
 
 Table the test data to review the frequency for each angle and each coordinate. 
@@ -210,6 +253,7 @@ length(unique(online$posXY))
 tabonlineXYA = table(online$posXY, online$angle)
 #output shows measurements were taken at all angles throughout the floor
 tabonlineXYA
+# Table 5 - Test data counts per location and angle
 ```
 The above output shows that each angle has test data meaning we can test all angle for accuracy.
 
@@ -219,15 +263,16 @@ onlineSummary = castOnline(online)
 #confirm rejected AP is included
 dim(onlineSummary)
 names(onlineSummary)
+# Table 6 - Reshaped test data set
 ```
 
 When it comes to the kNN, we need to include the data which include the angles close to the point in question. As observed before, angle matters. For this exercise, we need to abide by the following rules: 
 
   * If one angle is desired, then we will include angles which match the rounded orientation of the new observation  
-  * If we want two angles, two multiples of 45 degrees will be chosen in order to encapsulate the nw observation's orientation  
+  * If we want two angles, two multiples of 45 degrees will be chosen in order to encapsulate the new observation's orientation  
   * For three angles, the nearest 45 degree increment is chosen and either side will be used.   
 
-Now, we analyze or three scenarios for both APs included, rejectedAP left out, and then chosenAP left out. Three neighbors were used for three angles. The accuracy for each scenario as determined by the sum of squares difference between estimated XY and actual XY were outputted as well. Cross-validation was not used at this time.
+Now, we analyze our three scenarios for both APs included, rejectedAP left out, and then chosenAP left out. Three neighbors were used for three angles. The accuracy for each scenario as determined by the sum of squares difference between estimated X,Y and actual X,Y were outputted as well. Cross-validation was not used at this time.
 
 ```{r}
 for (ap in c("None", rejectedAP, chosenAP)){
@@ -250,12 +295,13 @@ for (ap in c("None", rejectedAP, chosenAP)){
   
   print(paste(ap, err))
 }
+# Table 7 - Accuracies for the various scenarios
 ```
 The above results show that including both APs yielded a better prediction accuracy followed by keeping chosenAP and then rejectedAP. The author's choice to keep chosenAP was indeed better than rejectedAP, but keeping both of them is even better.
 
 <font color = "Red">talk about cross-validation</font>
 
-We will now perform cross-validation with both APs to determine the best k. Three angles will be used. Future work would include parameterization of the angles from 1 to 3 to determine to determine the best m. 
+We next performed cross-validation with both APs to determine the best k. Three angles were used. Future work would include parameterization of the angles from 1 to 3 to determine the best m. 
 
 #### Cross-Validation
 Choose a v-fold of 11.
@@ -303,6 +349,7 @@ for (j in 1:v) {
 }
 # plot k to sum of squared errors
 plotSSErrors(err, K)
+# figure 6 - estimated ideal 'k'
 ```
 Given the plot above, the best k shows 9, but this changes if you rerun the cross-validation. Experimentation with k yielded 5 with the lowest error of 210 so it was used below.
 
@@ -318,33 +365,105 @@ calcError(estXY, actXY)
 
 <font color = "Red">provide some feel good about part 1. we concluded that keeping both APs yields better accuracy with a k-NN of 5 with 3 angles. We did not iterate of the angles to determine best parameter (arg!). The training data neighbors to the test data was determined by the signal strength distance and then the neighbors average X,Y was used to predict the test point location. </font>
 
+[&uarr;TOC](#TOC)
 
 # <a id='Part2'> Part 2: Alternative k-Nearest Neighbors</a>
 
-## 2.1: Examination of Power-based search
+## 2.1: Examination of Power-based search {#ExamPower}
 The case study document mentioned the curvature in the scatterplots of signal strength versus distance, and suggested using a log function to attempt to remove the curve. Since the signal strength data are reported in dBm, they are already the result of a log function: $dBm = 10*log_{10}(power/1 mW)$; therefore, we converted the reported signal strength values back to a power value and examined the effect that had on location prediction.
-Many of the functions used had to be modified to include the power conversion: $power = 10^{(signal/10)}$ and to use the new field in the calculations.
+Many of the functions used previously had to be modified to include the power conversion: $power = 10^{(signal/10)}$ and to use the new field in the calculations.
 Examination of surface plots of power show that the power value tends to isolate the AP more definitively than signal strength because $power \propto 1/distance^2$.
 
-![Contour plot of power for measurements against AP '97:8D' at 0 degrees orientation](contour1.png)
-![Contour plot of power for measurements against AP 'E1:C0' at 0 degrees orientation](contour2.png)
+![Figure 7 - Contour plot of power for measurements against AP '97:8D' at 0 degrees orientation](contour1.png)
+
+![Figure 8 - Contour plot of power for measurements against AP 'E1:C0' at 0 degrees orientation](contour2.png)
 
 The thought was that by having such a dramatic drop in power over a shorter range, we should be able to reduce the variability in predicted location and get better results.  However, when we simply substituted power for signal strength in the existing functions, the predictions using power were worse than using signal strength.
-![Red lines indicate distance error between predicted location (*) and true location (black squares) using k=4](errors.png)
+
+![Figure 9 - Red lines indicate distance error between predicted location (*) and true location (black squares) using k=4](errors.png)
 
 Using different values for 'k', we had these estimated errors:
 
-| k |Mean distance error|Book-reported error|
+| k |Power-based error|Signal-strength-based error|
 |:-:|:-----------------:|:-----------------:|
 | 1 |779.8603|659|
 | 3 |598.8870|307|
 | 4 |546.8603||
 | 5 |640.8003|276|
 
+*Table 8 - Comparison of predicted location errors between power-based and signal-strength-based approaches*
+
 Even though the power-based method better isolated the individual APs, we believe that the search algorithm should be redesigned to use all APs, instead of just one or two, due to the power drop-off.  As the distance from the reference AP increases, the power drops off so much that it becomes difficult to narrow down the actual location.  By redesigning the algorithm to use all APs, we may be able to capitalize on the power drop-off to better hone in on the target's location.
 
+[&uarr;TOC](#TOC)
 
-## 2.2: Weighted K-Nearest Neighbors
+##2.2: Investigating Weights {#ExamWeight}
+
+The description of the weighting procedure brought up some questions about the meaningfulness of the approach.  This led to a side investigation of how the nearest-neighbors method might be affected by weights.
+
+The investigation involved exporting the offine summary dataset and the online dataset to CSV files for use in Excel.  Then we looked at the process manually - taking the first report in the online dataset that matched our reference AP and looking for nearest neighbors in the offline summary dataset.  The target record stated the true position to be 0, 0.05 (lower left corner of the building).  The reference AP is within line of sight of the target device at coordinates 1,14.
+
+First, we selected only those records in the offline summary that matched the AP, then further filtered to those records that matched orientation (135 degrees).  Plotting the measured signal strength for that AP and orientation, we can see that there is a fairly extensive swath of positions in which the target signal strength can occur.  
+
+![*Figure 10 - Signal strength from AP @ 1,14*](SignalStrength1.png)
+
+Using the Excel function SMALL, we can find the k smallest differences - these would be the k nearest neighbors.
+
+|Record#|Sig Str Diff|Pos X|Pos Y|
+|:-----:|:----------:|:---:|:---:|
+| 3767  | 0.0196078  | 4   | 7   |
+|  357  | 0.0202128  | 1   | 2   |
+|  117  | 0.3846154  | 2   | 0   |
+| 3817  | 0.9354839  | 3   | 7   |
+|  505  | 1.0510204  | 1   | 3   |
+
+*Table 9 - Nearest neighbors for the target's signal strength*
+
+Avg X = 2.2; Avg Y = 3.8; True X = 0.0; True Y = 0.05; Error = 4.3477
+
+We can see that the target's reported signal strength occurs throughout the corridor as shown in the signal strength plot above.  Averaging those values pulls the estimate away from the true area.
+
+If we consider weighting the neighbors based on physical distance (as was suggested in the case study), the points closer to the AP will be weighted higher than the points further away, which would (in this particular example) pull the estimated location further away from the true location and closer to the AP, increasing the error further.
+
+The case study also hints at using multiple APs to do the neighbor selection.  If, for example, we chose the AP at the opposite corner of the building (the lower right corner), and examined the same target report as before, we can see an additional problem: 
+
+![*Figure 11 - Signal strength from AP @ 33.5,2.8*](SignalStrength2.png)
+
+Now if we look for just simple differences in signal strength, we can get points for either AP that could be spread across the entire building.
+
+|Record#|Sig Str Diff|Pos X|Pos Y|AP|
+|:-----:|:----------:|:---:|:---:|:-:|
+|  670  | 0.0625     | 4   | 3   |1, 14|
+|  2568 | 0.0919540  | 15  | 8   |33.5, 2.8|
+|  856  | 0.1034483  | 11  | 4   |33.5, 2.8|
+|  936  | 0.1263158  | 12  | 5   |33.5, 2.8|
+|  408  | 0.1612903  | 0   | 7   |1, 14|
+
+*Table 10 - Nearest neighbors for the target's signal strength across two APs*
+
+Avg X = 8.4; Avg Y = 5.4; True X = 0.0; True Y = 0.05; Error = 9.959
+
+Again, weighting the neighbors on physical distance reinforces a location closer to the AP at 33.5, 2.8, which increases the error from the true location.
+
+One possible approach is to use the simultaneous measurements as a group and find nearest neighbors that exhibit similar patterns.  For example the test record we have used here is part of a series of measurements taken at the same time and orientation.  The highest average signal strength was against AP 97:8A (-43.25 dBm) and the lowest average signal strength was against AP 97:8D (-63 dBm). If we search for that pattern in the training data, we get a more reasonable set of neighbors:
+
+|Timestamp|97:8A signal|97:8D signal|Signal "Dist"|Pos X|Pos Y|
+|:-------:|:----------:|:----------:|:-----------:|:---:|:---:|
+|02:45:43 | -43 | -63 | 0.25  |1 | 5 |
+|02:14:34 | -44 | -63 | 0.75  |1 | 4 |
+|01:06:28 | -44 | -61 | 2.136 |0 | 1 |
+|06:31:15 | -41 | -63 | 2.25  |2 | 12|
+|00:35:27 | -41 | -64 | 2.462 |0 | 0 |
+
+*Table 11 - Nearest neighbors for the target's strongest and weakest signal strength*
+
+Avg X = 0.8; Avg Y = 4.4; True X = 0.0; True Y = 0.05; Error = 4.423
+
+Future work into this approach with appropriate weighting could prove to reduce location prediction errors.
+
+[&uarr;TOC](#TOC)
+
+## 2.3: Weighted K-Nearest Neighbors {#WtKNN}
 
 Prediction based on weighted X and Y &darr;
 
@@ -366,10 +485,13 @@ actXY = onlineSummary[, c("posX","posY")]
 calcError(estXY, actXY)
 ```
 
+[&uarr;TOC](#TOC)
+
 ***
 # <a id='References'>References</a>
-[1] Nolan, Deborah; Data Science in R; 2015; Predicting Location via Indoor Positioning Systems; Chapter 1. 
-[2] Scikit-learn k-NN; http://scikit-learn.org/stable/modules/neighbors.html#nearest-neighbor-algorithms.
+* <a href='REF01'></a> [1] Nolan, Deborah; Data Science in R; 2015; Predicting Location via Indoor Positioning Systems; Chapter 1. 
+
+* <a href='REF02'></a> [2] Scikit-learn k-NN; http://scikit-learn.org/stable/modules/neighbors.html#nearest-neighbor-algorithms. 
 
 # <a id='Appendix'>Appendix (including function code)</a>
 This is the code used to define the functions used within the study. It can be found under 'MSDS7333-baldree-case6-fx.r' which is included in the final submission. 
