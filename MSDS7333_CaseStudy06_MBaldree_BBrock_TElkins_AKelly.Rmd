@@ -146,7 +146,7 @@ The maps show there were near equal amounts of training points captured for both
 
 
 ### 1.2.1 <a id='SigStren'> Signal Strength Distributions</a>
-Plot the signal strength distributions for each AP per angle for better understanding at location (X=2, Y=12). A more thorough analysis would examine the distributions at all locations points, but time did not permit this in-depth analysis. 
+Plot the signal strength distributions for each AP per angle for better understanding at location (X=2, Y=12). A more thorough analysis would examine the distributions at all locations points, but time did not permit this in-depth analysis. Instead, we will later create a summary statistic to analyze.
 
 ```{r}
 df = subset(offline, posX ==2 & posY == 12 & !(mac %in% remainingAP), c(signal, angle, mac))
@@ -155,6 +155,8 @@ plotBoxplotSignalStrength(df)
 ```
 
 The higher the decibel-milliwatts (dBm) means a stronger signal strength which indicates a closer physical position to the AP since signal strength decreases exponentially with distance. The distribution shows AP "e1:c0" has a stronger signal strength at this location than "dd:cd." But, the two of them together cover a wider range of signal coverage. What would this plot look like if we moved the fixed location point on the other side of the building at (X=33, Y=3)?
+
+Next, we plot the signal strength distributions for each AP per angle for better understanding at location (X=33, Y=3). 
  
 ```{r}
 # Let's focus on the fixed point (33,3)
@@ -162,7 +164,7 @@ df = subset(offline, posX == 33 & posY == 3 & !(mac %in% remainingAP), c(signal,
 plotBoxplotSignalStrength(df)
 # Figure 4 - Signal strength distribution for a point at the other end of the building
 ```
-This plot is similar to the previous distribution but with no outliers. At this point we know signal strength is different for the two access points. We don't know if this will affect our prediction accuracy. Now, let us analyze the two AP's signal strength distribution over angles.
+This plot is similar to the previous distribution but with one outlier. At this point we know signal strength is different for the two access points. We do not know if this will affect our prediction accuracy. Now, let us analyze the two AP's signal strength distribution over angles.
 
 [&uarr;TOC](#TOC)
 
@@ -178,7 +180,7 @@ plotDensitySignalStrength(df)
 The above plot shows the rejectedAP "dd:cd" has a higher signal density at lower strength while the acceptedAP "e1:c0" has a higher density coverage at a higher strength. The distributions show many of the plots are normally distributed while some of them, (e.g., "dd:cd" at 180 and "e1:c0" at 315) are heavily skewed or even bimodal. Looking at each AP from top to bottom, there seems to exist an obvious pattern with respect to angle. This would suggest the median of each distribution varies by angle which can be attributed to a difference in perceived strength. This means the angle of the device contributes to the APs strength of signal.
 
 #### Average Signal Strength Distributions
-Plot the signal strength distribution for all locations through the average signal strength for all locations by angle. Summary statistics for all possible locations by angle were created. 
+Plot the signal strength distribution for all locations through the average signal strength for all locations by angle by creating a summary statistic for all possible locations.
 
 ```{r}
 offlineSummary = createOfflineSummary(offline)
@@ -243,7 +245,7 @@ tabonlineXYA = table(online$posXY, online$angle)
 tabonlineXYA
 # Table 4 - Test data counts per location and angle
 ```
-The above output shows that each angle has test data meaning we can test all angle for accuracy.
+The above output shows that each angle has test data meaning we can test all angles for accuracy.
 
 Let's Reshape the test data where each AP is in a column. 
 ```{r}
@@ -285,9 +287,16 @@ for (ap in c("None", rejectedAP, chosenAP)){
 }
 # Table 6 - Accuracies for the various scenarios
 ```
-The above results show that including both APs yielded a better prediction accuracy followed by keeping chosenAP and then rejectedAP. The author's choice to keep chosenAP was indeed better than rejectedAP, but keeping both of them is even better.
+The above results show that including both APs yielded a better prediction accuracy followed by keeping chosenAP and then rejectedAP. But was the difference significant or just do to chance? To answer this question, a null hypothesis should be performed.
 
-We next performed cross-validation with both APs to determine the best k. Three angles were used. Future work would include parameterization of the angles from 1 to 3 to determine the best m. 
+Our null hypothesis is that all scenarios yield the same error. Our alternative hypothesis is that at least one scenario yields a different error from the others. 
+
+* Ho: None Error = ChosenAP Error = RejectedAP Error
+* Ha: At least one scenario is different.
+
+The next step is test our hypothesis with an ANOVA test. This step is left for future work. Therefore, we cannot reject Ho at this time.
+
+We will proceed with our analysis with both APs and perform a cross-validation to determine the best k. Three angles were used. Future work would include parameterization of the angles from 1 to 3 to determine the best m. 
 
 #### Cross-Validation
 Choose a v-fold of 11.
@@ -349,7 +358,7 @@ actXY = onlineSummary[ , c("posX", "posY")]
 calcError(estXY, actXY)
 ```
 
-<font color = "Red">provide some feel good about part 1. we concluded that keeping both APs yields better accuracy with a k-NN of 5 with 3 angles. We did not iterate of the angles to determine best parameter (arg!). The training data neighbors to the test data was determined by the signal strength distance and then the neighbors average X,Y was used to predict the test point location. </font>
+Our analysis of three scenarios that included both ChosenAP and RejectedAP and each exclused showed that there might be a potential gain from including both APs. Indeed the accuracy results showed including both APs yielded lower errors. However, this difference in errors was not analyzed for significance and was left for future work. A cross-validation for both APs scenario was performed to find optimal k. Analysis for optimal angle, m, was not peformed and left for future work.
 
 [&uarr;TOC](#TOC)
 
